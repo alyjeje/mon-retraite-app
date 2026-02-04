@@ -6,6 +6,8 @@ import '../../widgets/widgets.dart';
 import '../simulator/simulator_screen.dart';
 import '../documents/documents_screen.dart';
 import '../education/education_screen.dart';
+import '../notifications/notifications_screen.dart';
+import '../actions/actions_screen.dart';
 
 /// Écran d'accueil / Dashboard - Design Figma
 class HomeScreen extends StatelessWidget {
@@ -100,7 +102,10 @@ class HomeScreen extends StatelessWidget {
           ),
           AppIconButton(
             icon: Icons.notifications_outlined,
-            onPressed: () {},
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+            ),
             hasBadge: true,
             badgeCount: provider.unreadNotificationsCount,
           ),
@@ -198,7 +203,10 @@ class HomeScreen extends StatelessWidget {
         description: 'Alimentez votre épargne',
         bgColor: AppColors.accentYellowLight,
         iconColor: AppColors.accentYellowDark,
-        onTap: () => provider.setNavIndex(2),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ActionsScreen()),
+        ),
       ),
       _QuickAction(
         icon: Icons.menu_book,

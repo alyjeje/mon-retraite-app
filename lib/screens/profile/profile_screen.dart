@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/theme.dart';
 import '../../providers/app_provider.dart';
+import '../personal_info/personal_info_screen.dart';
+import '../beneficiaries/beneficiaries_screen.dart';
+import '../notifications/notifications_screen.dart';
+import '../documents/documents_screen.dart';
 
 /// Écran de profil - Design Figma
 class ProfileScreen extends StatefulWidget {
@@ -44,7 +48,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.person_outline,
                     label: 'Mes informations',
                     subtitle: user.fullName,
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PersonalInfoScreen(),
+                      ),
+                    ),
                   ),
                   _ProfileItem(
                     icon: Icons.credit_card,
@@ -56,7 +65,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.people_outline,
                     label: 'Mes bénéficiaires',
                     subtitle: '${provider.beneficiaries.length} bénéficiaires',
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const BeneficiariesScreen(),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -125,7 +139,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.description_outlined,
                     label: 'Mes documents',
                     subtitle: 'Relevés et attestations',
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const DocumentsScreen(),
+                      ),
+                    ),
                   ),
                   _ProfileItem(
                     icon: Icons.download_outlined,
