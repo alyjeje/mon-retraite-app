@@ -1,0 +1,35 @@
+Si tu as besoin d'une precision, commence ta reponse par [QUESTION]. Si tu as besoin d'une autorisation pour une action risquee, commence par [AUTORISATION]. Si tu as termine avec succes, commence par [OK]. Si une erreur s'est produite, commence par [ERREUR]. Contexte: Utilisateur: Liste tous les fichiers du dossier lib
+Claude: Voici le contenu du dossier `lib` :
+
+| Type | Nom |
+|------|-----|
+| 📁 Dossier | `core` |
+| 📁 Dossier | `data` |
+| 📄 Fichier | `main.dart` |
+| 📁 Dossier | `navigation` |
+| 📁 Dossier | `providers` |
+| 📁 Dossier | `screens` |
+| 📁 Dossier | `widgets` |
+
+Le dossier contient **1 fichier** (`main.dart`) et **6 sous-dossiers**.
+Utilisateur: Ok développe le parcours (front uniquement) du changement de rib en t’appuyant bien sûr sur le design et l’UI actuel de l’app et de la façon dont sont faits les parcours et push moi ça sur git
+Claude: J'ai maintenant une bonne compréhension de la structure de l'app. Je vois que dans `ProfileScreen`, il y a déjà un élément "Coordonnées bancaires" qui est un placeholder.
+
+**En résumé de ce que j'ai trouvé :**
+- L'app utilise un pattern step-by-step avec indicateur de progression (comme `NewPaymentScreen`)
+- Validation OTP pour les actions sensibles (comme dans `PersonalInfoScreen`)
+- Composants réutilisables : `AppButton`, `AppCard`, `AppInput`, `SuccessView`, etc.
+- Navigation simple avec `Navigator.push()`
+
+**Pour le parcours de changement de RIB, je propose :**
+1. Écran d'affichage du RIB actuel
+2. Saisie du nouveau RIB (IBAN) avec validation de format
+3. Récapitulatif des changements
+4. Validation OTP (sécurité)
+5. Écran de succès
+
+Peux-tu me confirmer si :
+- Ce flow te convient ?
+- Tu as des maquettes Figma à respecter ?
+- Y a-t-il d'autres étapes à ajouter (upload de document, etc.) ?
+Utilisateur: Oui ça me convient, pas de maquette, oui il faut charger le rib comme pièce justificative pour valider le changement avant envoi code otp, lets go ! Demande: Oui ça me convient, pas de maquette, oui il faut charger le rib comme pièce justificative pour valider le changement avant envoi code otp, lets go !
