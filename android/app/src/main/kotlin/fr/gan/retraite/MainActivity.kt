@@ -1,4 +1,4 @@
-package com.gan.retraite.mon_retraite_app
+package fr.gan.retraite
 
 import io.flutter.embedding.android.FlutterActivity
 
