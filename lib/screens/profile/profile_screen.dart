@@ -6,6 +6,7 @@ import '../personal_info/personal_info_screen.dart';
 import '../beneficiaries/beneficiaries_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../documents/documents_screen.dart';
+import '../bank_details/change_bank_details_screen.dart';
 
 /// Écran de profil - Design Figma
 class ProfileScreen extends StatefulWidget {
@@ -59,7 +60,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.credit_card,
                     label: 'Coordonnées bancaires',
                     subtitle: '${provider.bankAccounts.length} RIB enregistrés',
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ChangeBankDetailsScreen(),
+                      ),
+                    ),
                   ),
                   _ProfileItem(
                     icon: Icons.people_outline,
