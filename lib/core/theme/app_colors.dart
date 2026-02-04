@@ -18,8 +18,11 @@ class AppColors {
   // COULEURS ACCENT - JAUNE GAN (Énergie, Action)
   // ============================================
   static const Color accentYellow = Color(0xFFFFB81C);
-  static const Color accentYellowDark = Color(0xFFE69D00);
-  static const Color accentYellowLight = Color(0xFFFFF4E0);
+  static const Color accentYellowDark = Color(0xFF7A4F00); // Très foncé pour texte sur fond jaune (WCAG AA)
+  static const Color accentYellowLight = Color(0xFFFFF8EB); // Fond jaune très clair
+
+  // Texte sur fond jaune - couleur dédiée pour garantir la lisibilité
+  static const Color textOnYellow = Color(0xFF5C3D00); // Marron foncé - ratio 7:1 sur jaune clair
 
   // ============================================
   // COULEURS SÉMANTIQUES - MODE CLAIR
@@ -58,11 +61,11 @@ class AppColors {
   static const Color destructiveLight = Color(0xFFEF4444);
   static const Color destructiveForegroundLight = Color(0xFFFFFFFF);
 
-  // Texte - Mode clair
+  // Texte - Mode clair (contrastes améliorés WCAG AA)
   static const Color textPrimaryLight = Color(0xFF1A1F36);
-  static const Color textSecondaryLight = Color(0xFF6B7280);
-  static const Color textTertiaryLight = Color(0xFF9CA3AF);
-  static const Color textDisabledLight = Color(0xFFD1D5DB);
+  static const Color textSecondaryLight = Color(0xFF4B5563); // Plus foncé pour meilleur contraste
+  static const Color textTertiaryLight = Color(0xFF6B7280); // Ajusté pour meilleur contraste
+  static const Color textDisabledLight = Color(0xFF9CA3AF);
 
   // ============================================
   // COULEURS NEUTRES - MODE SOMBRE

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:percent_indicator/circular_percent_indicator.dart';
 import '../../core/theme/theme.dart';
 import '../../widgets/widgets.dart';
 
-/// Écran du simulateur de retraite
+/// Écran du simulateur de retraite - Design Figma
 class SimulatorScreen extends StatefulWidget {
   const SimulatorScreen({super.key});
 
@@ -13,36 +12,52 @@ class SimulatorScreen extends StatefulWidget {
 }
 
 class _SimulatorScreenState extends State<SimulatorScreen> {
-  int _retirementAge = 64;
-  double _monthlyContribution = 200;
-  double _currentSavings = 89359.25; // Total actuel
-  double _targetAmount = 150000;
-  bool _showResults = false;
+  final _retirementAgeController = TextEditingController(text: '64');
+  final _monthlyContributionController = TextEditingController(text: '200');
+  final _oneTimePaymentController = TextEditingController(text: '0');
 
-  double get _estimatedCapital {
-    final yearsUntilRetirement = _retirementAge - 59; // Age actuel supposé
-    final monthsUntilRetirement = yearsUntilRetirement * 12;
-    final futureValue = _currentSavings * 1.03 + // 3% rendement annuel moyen
-        _monthlyContribution * monthsUntilRetirement * 1.015; // Avec intérêts
-    return futureValue;
-  }
+  static const int _currentAge = 45;
+  static const double _currentBalance = 125780;
+  static const double _targetPension = 2500;
 
-  double get _estimatedMonthlyRent {
-    // Estimation simplifiée : capital / 20 ans / 12 mois
-    return _estimatedCapital / 240;
-  }
+  int get _retirementAge => int.tryParse(_retirementAgeController.text) ?? 64;
+  double get _monthlyContribution =>
+      double.tryParse(_monthlyContributionController.text) ?? 200;
+  double get _oneTimePayment =>
+      double.tryParse(_oneTimePaymentController.text) ?? 0;
+  int get _yearsUntilRetirement => _retirementAge - _currentAge;
 
-  double get _progressPercent {
-    return (_estimatedCapital / _targetAmount).clamp(0.0, 1.0);
+  double get _totalContributions =>
+      (_monthlyContribution * 12 * _yearsUntilRetirement) + _oneTimePayment;
+
+  double get _estimatedGrowth =>
+      (_currentBalance + _totalContributions) * 0.04 * _yearsUntilRetirement;
+
+  double get _estimatedTotal =>
+      _currentBalance + _totalContributions + _estimatedGrowth;
+
+  double get _estimatedMonthlyPension => _estimatedTotal * 0.004;
+
+  double get _progressToTarget =>
+      ((_estimatedMonthlyPension / _targetPension) * 100).clamp(0, 100);
+
+  @override
+  void dispose() {
+    _retirementAgeController.dispose();
+    _monthlyContributionController.dispose();
+    _oneTimePaymentController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat.currency(locale: 'fr_FR', symbol: '€');
+    final currencyFormat =
+        NumberFormat.currency(locale: 'fr_FR', symbol: '€', decimalDigits: 0);
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      backgroundColor:
+          isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
       appBar: AppBar(
         title: const Text('Simulateur retraite'),
       ),
@@ -51,500 +66,587 @@ class _SimulatorScreenState extends State<SimulatorScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Introduction
+            // Sous-titre
+            Text(
+              'Estimez votre future rente mensuelle',
+              style: AppTypography.bodyMedium.copyWith(
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
+              ),
+            ),
+            AppSpacing.verticalGapLg,
+
+            // Alerte info
             AlertCard(
-              title: 'Simulez votre future retraite',
+              title: 'Simulation indicative',
               message:
-                  'Cet outil vous permet d\'estimer votre capital et votre rente à la retraite selon différents scénarios.',
+                  'Cette simulation est une estimation indicative basée sur vos données actuelles. Elle ne constitue pas un engagement contractuel.',
               type: AlertCardType.info,
             ),
             AppSpacing.verticalGapLg,
 
-            // Paramètres
-            Text(
-              'Vos paramètres',
-              style: AppTypography.headlineSmall.copyWith(
-                color: isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimaryLight,
-              ),
-            ),
-            AppSpacing.verticalGapMd,
-
-            // Âge de départ
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.cake_outlined, color: AppColors.primary),
-                      AppSpacing.horizontalGapSm,
-                      Text(
-                        'Âge de départ à la retraite',
-                        style: AppTypography.labelMedium.copyWith(
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimaryLight,
-                        ),
-                      ),
-                    ],
-                  ),
-                  AppSpacing.verticalGapMd,
-                  Row(
-                    children: [
-                      Text(
-                        '62',
-                        style: AppTypography.caption,
-                      ),
-                      Expanded(
-                        child: Slider(
-                          value: _retirementAge.toDouble(),
-                          min: 62,
-                          max: 67,
-                          divisions: 5,
-                          label: '$_retirementAge ans',
-                          onChanged: (value) {
-                            setState(() => _retirementAge = value.toInt());
-                          },
-                        ),
-                      ),
-                      Text(
-                        '67',
-                        style: AppTypography.caption,
-                      ),
-                    ],
-                  ),
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.xs,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primarySurface,
-                        borderRadius: AppSpacing.borderRadiusFull,
-                      ),
-                      child: Text(
-                        '$_retirementAge ans',
-                        style: AppTypography.labelMedium.copyWith(
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            AppSpacing.verticalGapMd,
-
-            // Versement mensuel
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.payments_outlined, color: AppColors.accent),
-                      AppSpacing.horizontalGapSm,
-                      Text(
-                        'Versement mensuel',
-                        style: AppTypography.labelMedium.copyWith(
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimaryLight,
-                        ),
-                      ),
-                    ],
-                  ),
-                  AppSpacing.verticalGapMd,
-                  Row(
-                    children: [
-                      Text(
-                        '50€',
-                        style: AppTypography.caption,
-                      ),
-                      Expanded(
-                        child: Slider(
-                          value: _monthlyContribution,
-                          min: 50,
-                          max: 1000,
-                          divisions: 19,
-                          label: '${_monthlyContribution.toInt()}€',
-                          onChanged: (value) {
-                            setState(() => _monthlyContribution = value);
-                          },
-                        ),
-                      ),
-                      Text(
-                        '1000€',
-                        style: AppTypography.caption,
-                      ),
-                    ],
-                  ),
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.xs,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.accentSurface,
-                        borderRadius: AppSpacing.borderRadiusFull,
-                      ),
-                      child: Text(
-                        '${_monthlyContribution.toInt()}€ / mois',
-                        style: AppTypography.labelMedium.copyWith(
-                          color: AppColors.accentDark,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            AppSpacing.verticalGapMd,
-
-            // Objectif
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.flag_outlined, color: AppColors.success),
-                      AppSpacing.horizontalGapSm,
-                      Text(
-                        'Votre objectif de capital',
-                        style: AppTypography.labelMedium.copyWith(
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimaryLight,
-                        ),
-                      ),
-                    ],
-                  ),
-                  AppSpacing.verticalGapMd,
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [100000.0, 150000.0, 200000.0, 300000.0].map((amount) {
-                      final isSelected = _targetAmount == amount;
-                      return GestureDetector(
-                        onTap: () => setState(() => _targetAmount = amount),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm,
-                            vertical: AppSpacing.xs,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? AppColors.success
-                                : AppColors.backgroundLight,
-                            borderRadius: AppSpacing.borderRadiusFull,
-                            border: Border.all(
-                              color: isSelected
-                                  ? AppColors.success
-                                  : AppColors.borderLight,
-                            ),
-                          ),
-                          child: Text(
-                            '${(amount / 1000).toInt()}k€',
-                            style: AppTypography.labelSmall.copyWith(
-                              color: isSelected
-                                  ? Colors.white
-                                  : AppColors.textPrimaryLight,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
+            // Paramètres de simulation
+            _buildParametersCard(context, isDark, currencyFormat),
             AppSpacing.verticalGapLg,
 
-            // Bouton simuler
+            // Résultats de la simulation (carte gradient)
+            _buildResultsCard(context, currencyFormat),
+            AppSpacing.verticalGapLg,
+
+            // Progression vers l'objectif
+            _buildProgressionCard(context, isDark),
+            AppSpacing.verticalGapLg,
+
+            // Recommandations
+            _buildRecommendationsCard(context, isDark),
+            AppSpacing.verticalGapLg,
+
+            // Actions
             AppButton(
-              label: 'Voir ma projection',
-              onPressed: () {
-                setState(() => _showResults = true);
-              },
-              leadingIcon: Icons.calculate,
+              label: 'Faire un versement maintenant',
+              variant: AppButtonVariant.accent,
+              leadingIcon: Icons.euro,
+              onPressed: () => _showComingSoon(context),
+            ),
+            AppSpacing.verticalGapMd,
+            AppButton(
+              label: 'Programmer des versements réguliers',
+              variant: AppButtonVariant.outline,
+              onPressed: () => _showComingSoon(context),
             ),
             AppSpacing.verticalGapLg,
 
-            // Résultats
-            if (_showResults) ...[
-              Text(
-                'Votre projection',
-                style: AppTypography.headlineSmall.copyWith(
-                  color: isDark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textPrimaryLight,
-                ),
-              ),
-              AppSpacing.verticalGapMd,
-
-              // Progression vers l'objectif
-              AppCard(
-                child: Column(
-                  children: [
-                    CircularPercentIndicator(
-                      radius: 80,
-                      lineWidth: 12,
-                      percent: _progressPercent,
-                      center: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '${(_progressPercent * 100).toInt()}%',
-                            style: AppTypography.headlineLarge.copyWith(
-                              color: _progressPercent >= 1
-                                  ? AppColors.success
-                                  : AppColors.primary,
-                            ),
-                          ),
-                          Text(
-                            'de l\'objectif',
-                            style: AppTypography.caption,
-                          ),
-                        ],
-                      ),
-                      progressColor: _progressPercent >= 1
-                          ? AppColors.success
-                          : AppColors.primary,
-                      backgroundColor: AppColors.dividerLight,
-                      circularStrokeCap: CircularStrokeCap.round,
-                    ),
-                    AppSpacing.verticalGapLg,
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _ResultItem(
-                            label: 'Capital estimé',
-                            value: currencyFormat.format(_estimatedCapital),
-                            icon: Icons.account_balance_wallet,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        AppSpacing.horizontalGapMd,
-                        Expanded(
-                          child: _ResultItem(
-                            label: 'Rente mensuelle',
-                            value: currencyFormat.format(_estimatedMonthlyRent),
-                            icon: Icons.payments,
-                            color: AppColors.accent,
-                            subtitle: 'estimation',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              AppSpacing.verticalGapMd,
-
-              // Scénarios
-              Text(
-                'Scénarios alternatifs',
-                style: AppTypography.labelMedium.copyWith(
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
-                ),
-              ),
-              AppSpacing.verticalGapSm,
-
-              _ScenarioCard(
-                title: 'Si vous versez 100€ de plus par mois',
-                additionalCapital: (_monthlyContribution + 100) * (_retirementAge - 59) * 12 * 1.015 - _monthlyContribution * (_retirementAge - 59) * 12 * 1.015,
-                icon: Icons.trending_up,
-                color: AppColors.success,
-              ),
-              AppSpacing.verticalGapSm,
-
-              _ScenarioCard(
-                title: 'Si vous faites un versement de 5 000€ maintenant',
-                additionalCapital: 5000 * 1.15, // 15% de gains estimés
-                icon: Icons.bolt,
-                color: AppColors.accent,
-              ),
-              AppSpacing.verticalGapLg,
-
-              // Disclaimer
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.cardDark : AppColors.backgroundLight,
-                  borderRadius: AppSpacing.borderRadiusMd,
-                  border: Border.all(color: AppColors.borderLight),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.info_outline,
-                      size: 20,
-                      color: AppColors.textTertiaryLight,
-                    ),
-                    AppSpacing.horizontalGapSm,
-                    Expanded(
-                      child: Text(
-                        'Cette simulation est donnée à titre indicatif et ne constitue pas un engagement contractuel. Les performances passées ne préjugent pas des performances futures.',
-                        style: AppTypography.caption.copyWith(
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              AppSpacing.verticalGapLg,
-
-              // Actions
-              Row(
-                children: [
-                  Expanded(
-                    child: AppButton(
-                      label: 'Verser maintenant',
-                      onPressed: () {},
-                      leadingIcon: Icons.add,
-                    ),
-                  ),
-                  AppSpacing.horizontalGapMd,
-                  Expanded(
-                    child: AppButton(
-                      label: 'Partager',
-                      variant: AppButtonVariant.outline,
-                      onPressed: () {},
-                      leadingIcon: Icons.share,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-
+            // Disclaimer
+            _buildDisclaimer(context, isDark),
             AppSpacing.verticalGapXxl,
           ],
         ),
       ),
     );
   }
-}
 
-class _ResultItem extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-  final String? subtitle;
-
-  const _ResultItem({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-    this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.sm),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
+  Widget _buildParametersCard(
+      BuildContext context, bool isDark, NumberFormat currencyFormat) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.calendar_today,
+                  color: AppColors.primary, size: 20),
+              AppSpacing.horizontalGapSm,
+              Text(
+                'Vos paramètres',
+                style: AppTypography.labelLarge.copyWith(
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimaryLight,
+                ),
+              ),
+            ],
           ),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        AppSpacing.verticalGapSm,
+          AppSpacing.verticalGapMd,
+
+          // Info actuelle
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Votre âge actuel',
+                      style: AppTypography.caption.copyWith(
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
+                      ),
+                    ),
+                    AppSpacing.verticalGapXxs,
+                    Text(
+                      '$_currentAge ans',
+                      style: AppTypography.labelLarge.copyWith(
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimaryLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Épargne actuelle',
+                      style: AppTypography.caption.copyWith(
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
+                      ),
+                    ),
+                    AppSpacing.verticalGapXxs,
+                    Text(
+                      currencyFormat.format(_currentBalance),
+                      style: AppTypography.labelLarge.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          AppSpacing.verticalGapMd,
+
+          // Champs de saisie
+          _buildInputField(
+            context,
+            isDark,
+            label: 'Âge de départ souhaité',
+            controller: _retirementAgeController,
+            helperText: 'Dans $_yearsUntilRetirement ans',
+            keyboardType: TextInputType.number,
+          ),
+          AppSpacing.verticalGapMd,
+          _buildInputField(
+            context,
+            isDark,
+            label: 'Versement mensuel prévu',
+            controller: _monthlyContributionController,
+            helperText: 'Montant que vous prévoyez de verser chaque mois',
+            keyboardType: TextInputType.number,
+            suffix: '€',
+          ),
+          AppSpacing.verticalGapMd,
+          _buildInputField(
+            context,
+            isDark,
+            label: 'Versement exceptionnel prévu (optionnel)',
+            controller: _oneTimePaymentController,
+            helperText: 'Versement ponctuel que vous prévoyez d\'effectuer',
+            keyboardType: TextInputType.number,
+            suffix: '€',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputField(
+    BuildContext context,
+    bool isDark, {
+    required String label,
+    required TextEditingController controller,
+    String? helperText,
+    TextInputType? keyboardType,
+    String? suffix,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Text(
           label,
-          style: AppTypography.caption,
-          textAlign: TextAlign.center,
+          style: AppTypography.labelSmall.copyWith(
+            color: isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondaryLight,
+          ),
         ),
         AppSpacing.verticalGapXxs,
-        Text(
-          value,
-          style: AppTypography.headlineSmall.copyWith(
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          style: AppTypography.bodyMedium.copyWith(
             color: isDark
                 ? AppColors.textPrimaryDark
                 : AppColors.textPrimaryLight,
           ),
-          textAlign: TextAlign.center,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: isDark ? AppColors.inputBackgroundDark : AppColors.inputBackgroundLight,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            suffixText: suffix,
+            suffixStyle: AppTypography.bodyMedium.copyWith(
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
+            ),
+          ),
+          onChanged: (_) => setState(() {}),
         ),
-        if (subtitle != null)
+        if (helperText != null) ...[
+          AppSpacing.verticalGapXxs,
           Text(
-            subtitle!,
+            helperText,
             style: AppTypography.caption.copyWith(
-              fontSize: 10,
-              color: AppColors.textTertiaryLight,
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _ScenarioCard extends StatelessWidget {
-  final String title;
-  final double additionalCapital;
-  final IconData icon;
-  final Color color;
-
-  const _ScenarioCard({
-    required this.title,
-    required this.additionalCapital,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat.currency(locale: 'fr_FR', symbol: '€');
-
-    return AppCard(
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: AppSpacing.borderRadiusSm,
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          AppSpacing.horizontalGapMd,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimaryLight,
-                  ),
-                ),
-                Text(
-                  '+${currencyFormat.format(additionalCapital)} de capital',
-                  style: AppTypography.labelMedium.copyWith(
-                    color: color,
-                  ),
-                ),
-              ],
+              color: isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiaryLight,
+              fontSize: 11,
             ),
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildResultsCard(BuildContext context, NumberFormat currencyFormat) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        borderRadius: AppSpacing.borderRadiusMd,
+        boxShadow: AppColors.shadowMd,
+      ),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.track_changes, color: Colors.white, size: 20),
+              AppSpacing.horizontalGapSm,
+              Text(
+                'Votre projection à $_retirementAge ans',
+                style: AppTypography.labelLarge.copyWith(
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          AppSpacing.verticalGapLg,
+
+          // Capital estimé
+          Text(
+            'Capital estimé',
+            style: AppTypography.caption.copyWith(
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+          ),
+          AppSpacing.verticalGapXxs,
+          Text(
+            currencyFormat.format(_estimatedTotal),
+            style: AppTypography.headlineLarge.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          AppSpacing.verticalGapSm,
+          Row(
+            children: [
+              const Icon(Icons.trending_up, color: Colors.white70, size: 16),
+              AppSpacing.horizontalGapXxs,
+              Text(
+                '+${currencyFormat.format(_estimatedGrowth)} de gains estimés',
+                style: AppTypography.caption.copyWith(
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
+          ),
+          AppSpacing.verticalGapLg,
+
+          // Séparateur
+          Container(
+            height: 1,
+            color: Colors.white.withValues(alpha: 0.2),
+          ),
+          AppSpacing.verticalGapLg,
+
+          // Rente mensuelle
+          Text(
+            'Rente mensuelle estimée',
+            style: AppTypography.caption.copyWith(
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+          ),
+          AppSpacing.verticalGapXxs,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                currencyFormat.format(_estimatedMonthlyPension),
+                style: AppTypography.headlineLarge.copyWith(
+                  color: AppColors.accentYellow,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4, left: 4),
+                child: Text(
+                  '/mois',
+                  style: AppTypography.caption.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressionCard(BuildContext context, bool isDark) {
+    String alertMessage;
+    AlertCardType alertType;
+
+    if (_progressToTarget >= 100) {
+      alertMessage =
+          '🎉 Félicitations ! Vous êtes en bonne voie pour atteindre votre objectif.';
+      alertType = AlertCardType.success;
+    } else if (_progressToTarget >= 80) {
+      alertMessage = '✅ Très bien ! Vous êtes proche de votre objectif.';
+      alertType = AlertCardType.success;
+    } else if (_progressToTarget >= 50) {
+      alertMessage =
+          '💪 Bon début ! Augmentez vos versements pour vous rapprocher de votre objectif.';
+      alertType = AlertCardType.warning;
+    } else {
+      alertMessage =
+          '📈 Augmentez vos versements pour atteindre votre objectif plus rapidement.';
+      alertType = AlertCardType.info;
+    }
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.flag_outlined, color: AppColors.primary, size: 20),
+              AppSpacing.horizontalGapSm,
+              Text(
+                'Progression vers votre objectif',
+                style: AppTypography.labelLarge.copyWith(
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimaryLight,
+                ),
+              ),
+            ],
+          ),
+          AppSpacing.verticalGapMd,
+
+          // Objectif visé
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Objectif visé',
+                style: AppTypography.caption.copyWith(
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                ),
+              ),
+              Text(
+                '${_targetPension.toInt()}€/mois',
+                style: AppTypography.labelMedium.copyWith(
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimaryLight,
+                ),
+              ),
+            ],
+          ),
+          AppSpacing.verticalGapMd,
+
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: _progressToTarget / 100,
+              minHeight: 12,
+              backgroundColor: isDark ? AppColors.borderDark : AppColors.borderLight,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                _progressToTarget >= 80
+                    ? AppColors.success
+                    : _progressToTarget >= 50
+                        ? AppColors.warning
+                        : AppColors.primary,
+              ),
+            ),
+          ),
+          AppSpacing.verticalGapXxs,
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              '${_progressToTarget.toInt()}%',
+              style: AppTypography.labelSmall.copyWith(
+                color: _progressToTarget >= 80
+                    ? AppColors.success
+                    : _progressToTarget >= 50
+                        ? AppColors.warning
+                        : AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          AppSpacing.verticalGapMd,
+
+          // Alert
+          AlertCard(
+            title: '',
+            message: alertMessage,
+            type: alertType,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationsCard(BuildContext context, bool isDark) {
+    final monthlyIncreaseNeeded =
+        ((_targetPension - _estimatedMonthlyPension) / (_yearsUntilRetirement * 0.004 * 12))
+            .ceil();
+    final taxSavings = (_monthlyContribution * 12 * 0.3).toInt();
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lightbulb_outline,
+                  color: AppColors.accentYellowDark, size: 20),
+              AppSpacing.horizontalGapSm,
+              Text(
+                'Recommandations personnalisées',
+                style: AppTypography.labelLarge.copyWith(
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimaryLight,
+                ),
+              ),
+            ],
+          ),
+          AppSpacing.verticalGapMd,
+
+          // Recommandation objectif
+          if (_progressToTarget < 100)
+            _buildRecommendationTile(
+              context,
+              isDark,
+              icon: '💡',
+              title: 'Pour atteindre ${_targetPension.toInt()}€/mois',
+              description:
+                  'Augmentez vos versements mensuels de $monthlyIncreaseNeeded€',
+              bgColor: AppColors.accentYellowLight,
+            ),
+          if (_progressToTarget < 100) AppSpacing.verticalGapSm,
+
+          // Recommandation fiscalité
+          _buildRecommendationTile(
+            context,
+            isDark,
+            icon: '📊',
+            title: 'Optimisez votre fiscalité',
+            description:
+                'Vos versements PERIN vous font économiser environ $taxSavings€ d\'impôts par an.',
+            bgColor: AppColors.primaryLighter,
+          ),
+          AppSpacing.verticalGapSm,
+
+          // Recommandation temps
+          _buildRecommendationTile(
+            context,
+            isDark,
+            icon: '⏰',
+            title: 'Le temps joue pour vous',
+            description:
+                'Plus vous épargnez tôt, plus vous bénéficiez de l\'effet des intérêts composés.',
+            bgColor: AppColors.infoLight,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationTile(
+    BuildContext context,
+    bool isDark, {
+    required String icon,
+    required String title,
+    required String description,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: AppSpacing.borderRadiusSm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$icon $title',
+            style: AppTypography.labelMedium.copyWith(
+              color: AppColors.textPrimaryLight,
+            ),
+          ),
+          AppSpacing.verticalGapXxs,
+          Text(
+            description,
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondaryLight,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDisclaimer(BuildContext context, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.backgroundLight,
+        borderRadius: AppSpacing.borderRadiusMd,
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+        ),
+      ),
+      child: Text(
+        'Avertissement : Cette simulation est réalisée à titre indicatif et ne constitue pas un engagement contractuel. Les performances passées ne préjugent pas des performances futures. Le montant final dépendra de nombreux facteurs incluant les performances des marchés financiers, vos versements réels et votre choix de sortie (rente ou capital).',
+        style: AppTypography.caption.copyWith(
+          color: isDark
+              ? AppColors.textSecondaryDark
+              : AppColors.textSecondaryLight,
+          fontSize: 11,
+        ),
+      ),
+    );
+  }
+
+  void _showComingSoon(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Fonctionnalité à venir'),
+        duration: Duration(seconds: 2),
       ),
     );
   }
