@@ -22,6 +22,7 @@ class _EducationScreenState extends State<EducationScreen>
       icon: Icons.shield_outlined,
       color: AppColors.primary,
       bgColor: AppColors.primaryLighter,
+      textColor: AppColors.primary, // Texte bleu foncé sur fond bleu clair
       description: 'Épargne individuelle avec avantages fiscaux',
       features: [
         'Versements déductibles des impôts',
@@ -46,6 +47,7 @@ class _EducationScreenState extends State<EducationScreen>
       icon: Icons.business_outlined,
       color: AppColors.info,
       bgColor: AppColors.infoLight,
+      textColor: AppColors.infoTextOnLight, // Texte bleu foncé sur fond bleu clair
       description: 'Épargne retraite mise en place par l\'employeur',
       features: [
         'Abondement de l\'employeur possible',
@@ -69,6 +71,7 @@ class _EducationScreenState extends State<EducationScreen>
       icon: Icons.groups_outlined,
       color: AppColors.accentYellowDark,
       bgColor: AppColors.accentYellowLight,
+      textColor: AppColors.textOnYellow, // Texte marron foncé sur fond jaune clair
       description:
           'Dispositif d\'épargne salariale (participation, intéressement)',
       features: [
@@ -278,7 +281,7 @@ class _EducationScreenState extends State<EducationScreen>
                         color: product.bgColor,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(product.icon, color: product.color, size: 24),
+                      child: Icon(product.icon, color: product.textColor, size: 24),
                     ),
                     AppSpacing.horizontalGapMd,
                     Expanded(
@@ -288,14 +291,14 @@ class _EducationScreenState extends State<EducationScreen>
                           Text(
                             product.name,
                             style: AppTypography.headlineSmall.copyWith(
-                              color: AppColors.textPrimaryLight,
+                              color: product.textColor,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
                             product.fullName,
                             style: AppTypography.caption.copyWith(
-                              color: AppColors.textSecondaryLight,
+                              color: product.textColor,
                             ),
                           ),
                         ],
@@ -307,7 +310,7 @@ class _EducationScreenState extends State<EducationScreen>
                 Text(
                   product.description,
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondaryLight,
+                    color: product.textColor,
                   ),
                 ),
               ],
@@ -571,7 +574,7 @@ class _EducationScreenState extends State<EducationScreen>
             child: Text(
               '💰 Exemple : Pour 1 000€ versés avec un TMI de 30%, vous économisez 300€ d\'impôts.',
               style: AppTypography.labelSmall.copyWith(
-                color: AppColors.textPrimaryLight,
+                color: AppColors.textOnYellow, // Texte contrasté sur fond jaune
               ),
             ),
           ),
@@ -765,6 +768,7 @@ class _Product {
   final IconData icon;
   final Color color;
   final Color bgColor;
+  final Color textColor; // Couleur du texte sur fond bgColor (WCAG AA)
   final String description;
   final List<String> features;
   final String fiscality;
@@ -777,6 +781,7 @@ class _Product {
     required this.icon,
     required this.color,
     required this.bgColor,
+    required this.textColor,
     required this.description,
     required this.features,
     required this.fiscality,

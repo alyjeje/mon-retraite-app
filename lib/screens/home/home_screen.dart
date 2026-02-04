@@ -261,7 +261,8 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildRetirementGoalCard(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Couleurs dédiées pour fond jaune (bon contraste WCAG AA)
+    const textColorOnYellow = AppColors.textOnYellow;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -297,7 +298,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 child: Icon(
                   Icons.track_changes,
-                  color: isDark ? AppColors.foregroundLight : AppColors.foregroundLight,
+                  color: textColorOnYellow,
                   size: 24,
                 ),
               ),
@@ -309,9 +310,7 @@ class HomeScreen extends StatelessWidget {
                     Text(
                       'Votre objectif retraite',
                       style: AppTypography.labelLarge.copyWith(
-                        color: isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textPrimaryLight,
+                        color: textColorOnYellow,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -319,9 +318,7 @@ class HomeScreen extends StatelessWidget {
                     Text(
                       'À 64 ans, vous êtes sur la bonne voie pour atteindre 2 100€/mois de rente',
                       style: AppTypography.bodySmall.copyWith(
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondaryLight,
+                        color: textColorOnYellow,
                       ),
                     ),
                     AppSpacing.verticalGapMd,
@@ -333,13 +330,9 @@ class HomeScreen extends StatelessWidget {
                       icon: const Text('Ajuster mon objectif'),
                       label: const Icon(Icons.arrow_forward, size: 16),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textPrimaryLight,
+                        foregroundColor: textColorOnYellow,
                         side: BorderSide(
-                          color: isDark
-                              ? AppColors.borderDark
-                              : AppColors.borderLight,
+                          color: textColorOnYellow.withValues(alpha: 0.5),
                         ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.md,

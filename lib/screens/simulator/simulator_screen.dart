@@ -555,6 +555,7 @@ class _SimulatorScreenState extends State<SimulatorScreen> {
               description:
                   'Augmentez vos versements mensuels de $monthlyIncreaseNeeded€',
               bgColor: AppColors.accentYellowLight,
+              textColor: AppColors.warningTextOnLight,
             ),
           if (_progressToTarget < 100) AppSpacing.verticalGapSm,
 
@@ -567,6 +568,7 @@ class _SimulatorScreenState extends State<SimulatorScreen> {
             description:
                 'Vos versements PERIN vous font économiser environ $taxSavings€ d\'impôts par an.',
             bgColor: AppColors.primaryLighter,
+            textColor: AppColors.primary,
           ),
           AppSpacing.verticalGapSm,
 
@@ -579,6 +581,7 @@ class _SimulatorScreenState extends State<SimulatorScreen> {
             description:
                 'Plus vous épargnez tôt, plus vous bénéficiez de l\'effet des intérêts composés.',
             bgColor: AppColors.infoLight,
+            textColor: AppColors.infoTextOnLight,
           ),
         ],
       ),
@@ -592,6 +595,7 @@ class _SimulatorScreenState extends State<SimulatorScreen> {
     required String title,
     required String description,
     required Color bgColor,
+    required Color textColor,
   }) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -605,14 +609,15 @@ class _SimulatorScreenState extends State<SimulatorScreen> {
           Text(
             '$icon $title',
             style: AppTypography.labelMedium.copyWith(
-              color: AppColors.textPrimaryLight,
+              color: textColor,
+              fontWeight: FontWeight.w600,
             ),
           ),
           AppSpacing.verticalGapXxs,
           Text(
             description,
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondaryLight,
+              color: textColor,
             ),
           ),
         ],

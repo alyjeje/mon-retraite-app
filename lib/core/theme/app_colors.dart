@@ -29,15 +29,19 @@ class AppColors {
   // ============================================
   static const Color success = Color(0xFF10B981);
   static const Color successLight = Color(0xFFD1FAE5);
+  static const Color successTextOnLight = Color(0xFF065F46); // Texte vert foncé sur fond successLight (WCAG AA)
 
   static const Color error = Color(0xFFEF4444);
   static const Color errorLight = Color(0xFFFEE2E2);
+  static const Color errorTextOnLight = Color(0xFF991B1B); // Texte rouge foncé sur fond errorLight (WCAG AA)
 
   static const Color warning = Color(0xFFF59E0B);
   static const Color warningLight = Color(0xFFFEF3C7);
+  static const Color warningTextOnLight = Color(0xFF92400E); // Texte ambre foncé sur fond warningLight (WCAG AA)
 
   static const Color info = Color(0xFF3B82F6);
   static const Color infoLight = Color(0xFFDBEAFE);
+  static const Color infoTextOnLight = Color(0xFF1E40AF); // Texte bleu foncé sur fond infoLight (WCAG AA)
 
   // ============================================
   // COULEURS NEUTRES - MODE CLAIR

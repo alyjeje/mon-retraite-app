@@ -297,26 +297,27 @@ class AlertCard extends StatelessWidget {
   Color _getIconColor() {
     switch (type) {
       case AlertCardType.info:
-        return AppColors.info;
+        return AppColors.infoTextOnLight;
       case AlertCardType.success:
-        return AppColors.success;
+        return AppColors.successTextOnLight;
       case AlertCardType.warning:
-        return AppColors.warningDark;
+        return AppColors.warningTextOnLight;
       case AlertCardType.error:
-        return AppColors.error;
+        return AppColors.errorTextOnLight;
     }
   }
 
   Color _getTextColor() {
+    // Couleurs de texte avec bon contraste sur fonds clairs (WCAG AA)
     switch (type) {
       case AlertCardType.info:
-        return AppColors.infoDark;
+        return AppColors.infoTextOnLight;
       case AlertCardType.success:
-        return AppColors.successDark;
+        return AppColors.successTextOnLight;
       case AlertCardType.warning:
-        return AppColors.warningDark;
+        return AppColors.warningTextOnLight;
       case AlertCardType.error:
-        return AppColors.errorDark;
+        return AppColors.errorTextOnLight;
     }
   }
 
