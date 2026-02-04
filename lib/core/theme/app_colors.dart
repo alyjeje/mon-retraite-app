@@ -87,28 +87,35 @@ class AppColors {
   static const Color destructiveForegroundDark = Color(0xFF0A0E1A);
 
   // Couleurs primaires adaptées pour le dark mode
-  static const Color primaryDark = Color(0xFF4A9EFF);
-  static const Color primaryLightDark = Color(0xFF3B82F6);
+  static const Color primaryDark = Color(0xFF60A5FA); // Plus lumineux pour meilleur contraste
+  static const Color primaryLightDark = Color(0xFF93C5FD); // Encore plus clair
   static const Color primaryLighterDark = Color(0xFF1E3A5F);
   static const Color primaryForegroundDark = Color(0xFF0A0E1A);
 
   // Couleurs accent adaptées pour le dark mode
   static const Color accentYellowDarkMode = Color(0xFFFFC940);
-  static const Color accentYellowDarkDarkMode = Color(0xFFFFB81C);
-  static const Color accentYellowLightDarkMode = Color(0xFF3D2F0A);
+  static const Color accentYellowDarkDarkMode = Color(0xFFFFD966); // Plus lumineux
+  static const Color accentYellowLightDarkMode = Color(0xFF423A1F); // Fond plus clair pour contraste
 
-  // Couleurs sémantiques dark mode
-  static const Color successDark = Color(0xFF34D399);
-  static const Color successLightDark = Color(0xFF1A3A2E);
+  // Couleurs de texte sur fonds colorés (dark mode) - pour meilleur contraste
+  static const Color textOnPrimaryDark = Color(0xFFFFFFFF);
+  static const Color textOnAccentDark = Color(0xFF1A1F36); // Texte sombre sur jaune
+  static const Color textOnInfoDark = Color(0xFFFFFFFF);
+  static const Color textOnSuccessDark = Color(0xFFFFFFFF);
+  static const Color textOnWarningDark = Color(0xFF1A1F36); // Texte sombre sur warning
 
-  static const Color errorDarkMode = Color(0xFFF87171);
-  static const Color errorLightDark = Color(0xFF3D1A1A);
+  // Couleurs sémantiques dark mode - ajustées pour meilleur contraste
+  static const Color successDark = Color(0xFF4ADE80); // Plus lumineux
+  static const Color successLightDark = Color(0xFF14532D); // Fond plus foncé pour contraste
 
-  static const Color warningDark = Color(0xFFFBBF24);
-  static const Color warningLightDark = Color(0xFF3D2F0A);
+  static const Color errorDarkMode = Color(0xFFFCA5A5); // Plus lumineux
+  static const Color errorLightDark = Color(0xFF450A0A); // Fond plus foncé
 
-  static const Color infoDark = Color(0xFF60A5FA);
-  static const Color infoLightDark = Color(0xFF1A2E4A);
+  static const Color warningDark = Color(0xFFFDE047); // Plus lumineux
+  static const Color warningLightDark = Color(0xFF422006); // Fond plus foncé
+
+  static const Color infoDark = Color(0xFF93C5FD); // Plus lumineux
+  static const Color infoLightDark = Color(0xFF172554); // Fond plus foncé pour contraste
 
   // Texte - Mode sombre
   static const Color textPrimaryDark = Color(0xFFF8F9FB);

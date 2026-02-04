@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../../core/theme/theme.dart';
 import '../../providers/app_provider.dart';
 import '../../widgets/widgets.dart';
+import '../simulator/simulator_screen.dart';
+import '../documents/documents_screen.dart';
+import '../education/education_screen.dart';
 
 /// Écran d'accueil / Dashboard - Design Figma
 class HomeScreen extends StatelessWidget {
@@ -184,7 +187,10 @@ class HomeScreen extends StatelessWidget {
         description: 'Estimez votre future rente',
         bgColor: AppColors.primaryLighter,
         iconColor: AppColors.primary,
-        onTap: () {},
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SimulatorScreen()),
+        ),
       ),
       _QuickAction(
         icon: Icons.trending_up,
@@ -200,7 +206,10 @@ class HomeScreen extends StatelessWidget {
         description: 'PERIN, PERO, ERE expliqués',
         bgColor: AppColors.infoLight,
         iconColor: AppColors.info,
-        onTap: () {},
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const EducationScreen()),
+        ),
       ),
       _QuickAction(
         icon: Icons.description_outlined,
@@ -208,7 +217,10 @@ class HomeScreen extends StatelessWidget {
         description: 'Relevés et attestations',
         bgColor: AppColors.successLight,
         iconColor: AppColors.success,
-        onTap: () => provider.setNavIndex(3),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const DocumentsScreen()),
+        ),
       ),
     ];
 
@@ -306,7 +318,10 @@ class HomeScreen extends StatelessWidget {
                     ),
                     AppSpacing.verticalGapMd,
                     OutlinedButton.icon(
-                      onPressed: () {},
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SimulatorScreen()),
+                      ),
                       icon: const Text('Ajuster mon objectif'),
                       label: const Icon(Icons.arrow_forward, size: 16),
                       style: OutlinedButton.styleFrom(
@@ -390,7 +405,10 @@ class HomeScreen extends StatelessWidget {
                   ),
                   AppSpacing.verticalGapSm,
                   GestureDetector(
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const EducationScreen()),
+                    ),
                     child: Text(
                       'En savoir plus sur la fiscalité',
                       style: AppTypography.bodySmall.copyWith(
