@@ -56,3 +56,5 @@ figma_export/
 
 # Zip files
 *.zip
+telegram_claude.py 
+.claude_prompt.txt 
