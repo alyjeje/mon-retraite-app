@@ -2,8 +2,39 @@ Si tu as besoin d'une precision, commence ta reponse par [QUESTION]. Si tu as be
  1. Crée un dossier knowledge_base/ avec des fichiers markdown exhaustifs sur l’épargne retraite française : PER individuel, PER entreprise, PER obligatoire, fiscalité des versements, fiscalité à la sortie (rente vs capital), abattements, âge légal de départ, trimestres, rachat de trimestres, plafonds de déduction, transferts entre PER, déblocage anticipé (achat résidence, accidents de vie), sortie en capital fractionné.
  2. Crée un backend Flask dans backend/ qui fait du RAG : charge les markdowns, les vectorise avec ChromaDB et sentence-transformers, expose une route POST /chat qui cherche les chunks pertinents et les envoie à Ollama (modèle llama3.2). Le system prompt doit interdire tout conseil de placement/fonds/allocation et refuser toute donnée personnelle. Ajoute un requirements.txt.
  3. Crée un écran ChatScreen dans Flutter avec un widget de chat qui appelle le backend /chat. Ajoute un disclaimer permanent : “Information générale uniquement. Pour tout conseil personnalisé, contactez votre conseiller.” Ajoute l’accès depuis l’écran d’accueil.
- 4. Push sur git quand tout est terminé. Demande: Crée un système de chatbot complet pour l’app épargne retraite :
- 1. Crée un dossier knowledge_base/ avec des fichiers markdown exhaustifs sur l’épargne retraite française : PER individuel, PER entreprise, PER obligatoire, fiscalité des versements, fiscalité à la sortie (rente vs capital), abattements, âge légal de départ, trimestres, rachat de trimestres, plafonds de déduction, transferts entre PER, déblocage anticipé (achat résidence, accidents de vie), sortie en capital fractionné.
- 2. Crée un backend Flask dans backend/ qui fait du RAG : charge les markdowns, les vectorise avec ChromaDB et sentence-transformers, expose une route POST /chat qui cherche les chunks pertinents et les envoie à Ollama (modèle llama3.2). Le system prompt doit interdire tout conseil de placement/fonds/allocation et refuser toute donnée personnelle. Ajoute un requirements.txt.
- 3. Crée un écran ChatScreen dans Flutter avec un widget de chat qui appelle le backend /chat. Ajoute un disclaimer permanent : “Information générale uniquement. Pour tout conseil personnalisé, contactez votre conseiller.” Ajoute l’accès depuis l’écran d’accueil.
  4. Push sur git quand tout est terminé.
+Claude: [OK] Le système de chatbot complet est créé et pushé sur git. Voici le résumé :
+
+## Récapitulatif
+
+### 1. Base de connaissances (`knowledge_base/`)
+13 fichiers markdown exhaustifs couvrant :
+- PER Individuel, Entreprise et Obligatoire
+- Fiscalité des versements et à la sortie
+- Âge légal de départ et trimestres
+- Rachat de trimestres et plafonds de déduction
+- Transferts entre PER et déblocage anticipé
+- Sortie en capital fractionné et abattements
+
+### 2. Backend Flask (`backend/`)
+- **`app.py`** : API avec RAG utilisant ChromaDB + sentence-transformers + Ollama (llama3.2)
+- **`requirements.txt`** : dépendances Python
+- Routes : `POST /chat`, `GET /health`, `POST /reload`
+- System prompt strict interdisant les conseils de placement et refusant les données personnelles
+
+### 3. Flutter ChatScreen (`lib/screens/chat/`)
+- Interface de chat complète avec bulles de messages
+- Disclaimer permanent en haut de l'écran
+- Indicateur de frappe pendant le chargement
+- Accès via bouton flottant "Assistant" sur l'écran d'accueil
+
+### 4. Pour lancer le backend
+```bash
+cd backend
+pip install -r requirements.txt
+# Lancer Ollama avec llama3.2 en parallèle
+python app.py
+```
+
+Le commit `e1f2d46` a été pushé sur `main`.
+Utilisateur: Change l’URL du backend chat dans Flutter pour https://chi-meters-bills-command.trycloudflare.com et push Demande: Change l’URL du backend chat dans Flutter pour https://chi-meters-bills-command.trycloudflare.com et push
