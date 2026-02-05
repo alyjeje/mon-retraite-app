@@ -4,41 +4,52 @@ import '../../widgets/widgets.dart';
 import 'beneficiary_designation_flow_screen.dart';
 
 /// Écran de gestion des bénéficiaires
-class BeneficiariesScreen extends StatelessWidget {
+class BeneficiariesScreen extends StatefulWidget {
   const BeneficiariesScreen({super.key});
+
+  @override
+  State<BeneficiariesScreen> createState() => _BeneficiariesScreenState();
+}
+
+class _BeneficiariesScreenState extends State<BeneficiariesScreen> {
+  // Simule si une désignation existe déjà
+  bool _hasExistingDesignation = true;
+  String? _lastDesignationDate = '15/01/2025';
+  String? _lastDesignationType = 'Bénéficiaires nominatifs';
+
+  // Données mock des bénéficiaires actuels
+  final List<Map<String, dynamic>> _beneficiaries = [
+    {
+      'id': '1',
+      'name': 'Pierre Martin',
+      'relationship': 'Conjoint',
+      'percentage': 50,
+      'order': 1,
+      'contract': 'Mon PERIN GAN',
+    },
+    {
+      'id': '2',
+      'name': 'Léa Martin',
+      'relationship': 'Enfant',
+      'percentage': 25,
+      'order': 2,
+      'contract': 'Mon PERIN GAN',
+    },
+    {
+      'id': '3',
+      'name': 'Hugo Martin',
+      'relationship': 'Enfant',
+      'percentage': 25,
+      'order': 2,
+      'contract': 'Mon PERIN GAN',
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final beneficiaries = [
-      {
-        'id': '1',
-        'name': 'Pierre Martin',
-        'relationship': 'Conjoint',
-        'percentage': 50,
-        'order': 1,
-        'contract': 'Mon PERIN GAN',
-      },
-      {
-        'id': '2',
-        'name': 'Léa Martin',
-        'relationship': 'Enfant',
-        'percentage': 25,
-        'order': 2,
-        'contract': 'Mon PERIN GAN',
-      },
-      {
-        'id': '3',
-        'name': 'Hugo Martin',
-        'relationship': 'Enfant',
-        'percentage': 25,
-        'order': 2,
-        'contract': 'Mon PERIN GAN',
-      },
-    ];
-
-    final totalPercentage = beneficiaries.fold<int>(
+    final totalPercentage = _beneficiaries.fold<int>(
       0,
       (sum, b) => sum + (b['percentage'] as int),
     );
@@ -54,13 +65,26 @@ class BeneficiariesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Gérez les bénéficiaires de vos contrats',
+              'Bénéficiaires en cas de décès',
+              style: AppTypography.headlineSmall.copyWith(
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight,
+              ),
+            ),
+            AppSpacing.verticalGapXs,
+            Text(
+              'Gérez les bénéficiaires de vos contrats retraite',
               style: AppTypography.bodyMedium.copyWith(
                 color: isDark
                     ? AppColors.textSecondaryDark
                     : AppColors.textSecondaryLight,
               ),
             ),
+            AppSpacing.verticalGapLg,
+
+            // Bouton principal TRÈS visible pour nouvelle désignation
+            _buildMainActionCard(context, isDark),
             AppSpacing.verticalGapLg,
 
             // Alerte pédagogique
@@ -72,99 +96,11 @@ class BeneficiariesScreen extends StatelessWidget {
             ),
             AppSpacing.verticalGapLg,
 
-            // Statistiques répartition
-            AppCard(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Répartition totale',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondaryLight,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm,
-                      vertical: AppSpacing.xxs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: totalPercentage == 100
-                          ? AppColors.success.withValues(alpha: 0.1)
-                          : AppColors.warning.withValues(alpha: 0.1),
-                      borderRadius: AppSpacing.borderRadiusFull,
-                    ),
-                    child: Text(
-                      '$totalPercentage%',
-                      style: AppTypography.labelMedium.copyWith(
-                        color: totalPercentage == 100
-                            ? AppColors.success
-                            : AppColors.warning,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (totalPercentage != 100) ...[
-              AppSpacing.verticalGapSm,
-              Row(
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 16,
-                    color: AppColors.warning,
-                  ),
-                  AppSpacing.horizontalGapXs,
-                  Text(
-                    'La répartition doit atteindre 100%',
-                    style: AppTypography.caption.copyWith(
-                      color: AppColors.warning,
-                    ),
-                  ),
-                ],
-              ),
+            // Désignation actuelle (si existe)
+            if (_hasExistingDesignation) ...[
+              _buildCurrentDesignationCard(isDark, totalPercentage),
+              AppSpacing.verticalGapLg,
             ],
-            AppSpacing.verticalGapLg,
-
-            // Liste des bénéficiaires
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Bénéficiaires (${beneficiaries.length})',
-                  style: AppTypography.headlineSmall.copyWith(
-                    color: isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimaryLight,
-                  ),
-                ),
-                AppButton(
-                  label: 'Ajouter',
-                  variant: AppButtonVariant.primary,
-                  leadingIcon: Icons.add,
-                  onPressed: () => _navigateToDesignationFlow(context),
-                ),
-              ],
-            ),
-            AppSpacing.verticalGapMd,
-
-            ...beneficiaries.map((beneficiary) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.md),
-              child: _BeneficiaryCard(
-                name: beneficiary['name'] as String,
-                relationship: beneficiary['relationship'] as String,
-                percentage: beneficiary['percentage'] as int,
-                order: beneficiary['order'] as int,
-                contract: beneficiary['contract'] as String,
-                onModify: () => _showComingSoon(context),
-                onDelete: () => _showComingSoon(context),
-              ),
-            )),
-            AppSpacing.verticalGapLg,
 
             // Information pédagogique
             AppCard(
@@ -172,7 +108,7 @@ class BeneficiariesScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '💡 Bon à savoir',
+                    'Bon à savoir',
                     style: AppTypography.labelLarge.copyWith(
                       color: isDark
                           ? AppColors.textPrimaryDark
@@ -193,9 +129,9 @@ class BeneficiariesScreen extends StatelessWidget {
                   ),
                   AppSpacing.verticalGapSm,
                   _InfoSection(
-                    title: 'Clause type',
+                    title: 'Annulation et remplacement',
                     description:
-                        'Par défaut, sans désignation spécifique, le capital revient à votre conjoint puis à vos enfants.',
+                        'Toute nouvelle désignation annule et remplace automatiquement la précédente.',
                   ),
                 ],
               ),
@@ -208,7 +144,249 @@ class BeneficiariesScreen extends StatelessWidget {
     );
   }
 
+  /// Carte principale avec le bouton d'action pour nouvelle désignation
+  Widget _buildMainActionCard(BuildContext context, bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        borderRadius: AppSpacing.cardRadius,
+        boxShadow: AppColors.shadowMd,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _navigateToDesignationFlow(context),
+          borderRadius: AppSpacing.cardRadius,
+          child: Padding(
+            padding: AppSpacing.paddingLg,
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: AppSpacing.borderRadiusMd,
+                  ),
+                  child: const Icon(
+                    Icons.person_add_alt_1,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+                AppSpacing.horizontalGapMd,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _hasExistingDesignation
+                            ? 'Modifier ma désignation'
+                            : 'Désigner mes bénéficiaires',
+                        style: AppTypography.labelLarge.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      AppSpacing.verticalGapXxs,
+                      Text(
+                        _hasExistingDesignation
+                            ? 'Annule et remplace la désignation actuelle'
+                            : 'Protégez vos proches en cas de décès',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Carte affichant la désignation actuelle
+  Widget _buildCurrentDesignationCard(bool isDark, int totalPercentage) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.verified,
+                    color: AppColors.success,
+                    size: 20,
+                  ),
+                  AppSpacing.horizontalGapSm,
+                  Text(
+                    'Désignation en cours',
+                    style: AppTypography.labelLarge.copyWith(
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xxs,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.1),
+                  borderRadius: AppSpacing.borderRadiusFull,
+                ),
+                child: Text(
+                  'Active',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.success,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          AppSpacing.verticalGapMd,
+
+          // Informations sur la désignation
+          _DesignationInfoRow(
+            label: 'Type',
+            value: _lastDesignationType ?? 'Non défini',
+          ),
+          AppSpacing.verticalGapXs,
+          _DesignationInfoRow(
+            label: 'Date de signature',
+            value: _lastDesignationDate ?? 'Non défini',
+          ),
+          AppSpacing.verticalGapXs,
+          _DesignationInfoRow(
+            label: 'Contrat',
+            value: 'Mon PERIN GAN',
+          ),
+
+          AppSpacing.verticalGapMd,
+          const Divider(),
+          AppSpacing.verticalGapMd,
+
+          // Statistiques répartition
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Répartition totale',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xxs,
+                ),
+                decoration: BoxDecoration(
+                  color: totalPercentage == 100
+                      ? AppColors.success.withValues(alpha: 0.1)
+                      : AppColors.warning.withValues(alpha: 0.1),
+                  borderRadius: AppSpacing.borderRadiusFull,
+                ),
+                child: Text(
+                  '$totalPercentage%',
+                  style: AppTypography.labelMedium.copyWith(
+                    color: totalPercentage == 100
+                        ? AppColors.success
+                        : AppColors.warning,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          AppSpacing.verticalGapMd,
+
+          // Liste des bénéficiaires
+          Text(
+            'Bénéficiaires (${_beneficiaries.length})',
+            style: AppTypography.labelMedium.copyWith(
+              color: isDark
+                  ? AppColors.textPrimaryDark
+                  : AppColors.textPrimaryLight,
+            ),
+          ),
+          AppSpacing.verticalGapSm,
+
+          ..._beneficiaries.map((beneficiary) => Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: _BeneficiaryRow(
+              name: beneficiary['name'] as String,
+              relationship: beneficiary['relationship'] as String,
+              percentage: beneficiary['percentage'] as int,
+              order: beneficiary['order'] as int,
+            ),
+          )),
+
+          AppSpacing.verticalGapMd,
+
+          // Bouton voir le document
+          AppButton(
+            label: 'Voir le document signé',
+            variant: AppButtonVariant.outline,
+            leadingIcon: Icons.picture_as_pdf,
+            onPressed: () => _showDocumentPreview(context),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _navigateToDesignationFlow(BuildContext context) {
+    // Afficher un dialogue de confirmation si une désignation existe
+    if (_hasExistingDesignation) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Nouvelle désignation'),
+          content: const Text(
+            'Toute nouvelle désignation annulera et remplacera votre désignation actuelle. Voulez-vous continuer ?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                _startDesignationFlow(context);
+              },
+              child: const Text('Continuer'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      _startDesignationFlow(context);
+    }
+  }
+
+  void _startDesignationFlow(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const BeneficiaryDesignationFlowScreen(
@@ -219,139 +397,128 @@ class BeneficiariesScreen extends StatelessWidget {
     );
   }
 
-  void _showComingSoon(BuildContext context) {
+  void _showDocumentPreview(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Fonctionnalité à venir'),
+        content: Text('Document PDF en cours de chargement...'),
         duration: Duration(seconds: 2),
       ),
     );
   }
 }
 
-class _BeneficiaryCard extends StatelessWidget {
-  final String name;
-  final String relationship;
-  final int percentage;
-  final int order;
-  final String contract;
-  final VoidCallback onModify;
-  final VoidCallback onDelete;
+/// Ligne d'information sur la désignation
+class _DesignationInfoRow extends StatelessWidget {
+  final String label;
+  final String value;
 
-  const _BeneficiaryCard({
-    required this.name,
-    required this.relationship,
-    required this.percentage,
-    required this.order,
-    required this.contract,
-    required this.onModify,
-    required this.onDelete,
+  const _DesignationInfoRow({
+    required this.label,
+    required this.value,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            name,
-                            style: AppTypography.labelLarge.copyWith(
-                              color: isDark
-                                  ? AppColors.textPrimaryDark
-                                  : AppColors.textPrimaryLight,
-                            ),
-                          ),
-                        ),
-                        AppSpacing.horizontalGapSm,
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.xs,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? AppColors.cardDark
-                                : AppColors.backgroundLight,
-                            borderRadius: AppSpacing.borderRadiusFull,
-                            border: Border.all(
-                              color: isDark
-                                  ? AppColors.borderDark
-                                  : AppColors.borderLight,
-                            ),
-                          ),
-                          child: Text(
-                            'Rang $order',
-                            style: AppTypography.caption.copyWith(
-                              color: isDark
-                                  ? AppColors.textSecondaryDark
-                                  : AppColors.textSecondaryLight,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    AppSpacing.verticalGapXxs,
-                    Text(
-                      relationship,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondaryLight,
-                      ),
-                    ),
-                    AppSpacing.verticalGapXxs,
-                    Text(
-                      contract,
-                      style: AppTypography.caption.copyWith(
-                        color: isDark
-                            ? AppColors.textTertiaryDark
-                            : AppColors.textTertiaryLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '$percentage%',
-                style: AppTypography.headlineMedium.copyWith(
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: AppTypography.bodySmall.copyWith(
+            color: isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondaryLight,
           ),
-          AppSpacing.verticalGapMd,
-          Row(
-            children: [
-              Expanded(
-                child: AppButton(
-                  label: 'Modifier',
-                  variant: AppButtonVariant.outline,
-                  leadingIcon: Icons.edit_outlined,
-                  onPressed: onModify,
+        ),
+        Text(
+          value,
+          style: AppTypography.bodySmall.copyWith(
+            color: isDark
+                ? AppColors.textPrimaryDark
+                : AppColors.textPrimaryLight,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Ligne résumant un bénéficiaire
+class _BeneficiaryRow extends StatelessWidget {
+  final String name;
+  final String relationship;
+  final int percentage;
+  final int order;
+
+  const _BeneficiaryRow({
+    required this.name,
+    required this.relationship,
+    required this.percentage,
+    required this.order,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: AppSpacing.paddingSm,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+        borderRadius: AppSpacing.borderRadiusSm,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: AppSpacing.borderRadiusSm,
+            ),
+            child: Center(
+              child: Text(
+                name.split(' ').map((n) => n.isNotEmpty ? n[0] : '').join(),
+                style: AppTypography.labelSmall.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              AppSpacing.horizontalGapMd,
-              AppButton(
-                label: 'Supprimer',
-                variant: AppButtonVariant.text,
-                leadingIcon: Icons.delete_outline,
-                onPressed: onDelete,
-              ),
-            ],
+            ),
+          ),
+          AppSpacing.horizontalGapSm,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimaryLight,
+                  ),
+                ),
+                Text(
+                  '$relationship • Rang $order',
+                  style: AppTypography.caption.copyWith(
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '$percentage%',
+            style: AppTypography.labelMedium.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
