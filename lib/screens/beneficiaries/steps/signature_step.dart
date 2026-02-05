@@ -11,7 +11,7 @@ import '../services/pdf_generator_service.dart';
 /// Étape 5: Signature électronique avec OTP
 class SignatureStep extends StatefulWidget {
   final BeneficiaryDesignation designation;
-  final Function(String reference) onSignatureCompleted;
+  final Function(String reference, String pdfPath) onSignatureCompleted;
 
   const SignatureStep({
     super.key,
@@ -181,8 +181,8 @@ class _SignatureStepState extends State<SignatureStep> {
     });
 
     try {
-      // Générer le PDF
-      await PdfGeneratorService.generateBeneficiaryDesignationPdf(
+      // Générer le PDF et récupérer le chemin
+      final pdfPath = await PdfGeneratorService.generateBeneficiaryDesignationPdf(
         widget.designation,
       );
 
@@ -190,8 +190,8 @@ class _SignatureStepState extends State<SignatureStep> {
       final dateFormat = DateFormat('yyyyMMddHHmmss');
       final reference = 'SIG-${dateFormat.format(DateTime.now())}-${Random().nextInt(9999).toString().padLeft(4, '0')}';
 
-      // Appeler le callback avec la référence
-      widget.onSignatureCompleted(reference);
+      // Appeler le callback avec la référence et le chemin du PDF
+      widget.onSignatureCompleted(reference, pdfPath);
     } catch (e) {
       setState(() {
         _isGeneratingPdf = false;

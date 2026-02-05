@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 import '../../core/theme/theme.dart';
 import '../../data/models/beneficiary_designation_model.dart';
 import '../../widgets/widgets.dart';
@@ -37,6 +39,7 @@ class _BeneficiaryDesignationFlowScreenState
   String? _freeClauseText;
   bool _isCompleted = false;
   String? _signatureReference;
+  String? _pdfPath;
 
   // Nombre d'étapes selon le type de désignation
   int get _totalSteps {
@@ -125,11 +128,54 @@ class _BeneficiaryDesignationFlowScreenState
     _nextStep();
   }
 
-  void _onSignatureCompleted(String reference) {
+  void _onSignatureCompleted(String reference, String pdfPath) {
     setState(() {
       _signatureReference = reference;
+      _pdfPath = pdfPath;
       _isCompleted = true;
     });
+  }
+
+  /// Ouvre le PDF généré avec le visualiseur système
+  Future<void> _openPdf() async {
+    if (_pdfPath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Aucun document disponible'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final file = File(_pdfPath!);
+      if (await file.exists()) {
+        final bytes = await file.readAsBytes();
+        await Printing.sharePdf(
+          bytes: bytes,
+          filename: 'designation_beneficiaire.pdf',
+        );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Le document n\'a pas été trouvé'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de l\'ouverture: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   BeneficiaryDesignation _buildDesignation() {
@@ -406,14 +452,7 @@ class _BeneficiaryDesignationFlowScreenState
                 label: 'Voir le document',
                 variant: AppButtonVariant.outline,
                 leadingIcon: Icons.picture_as_pdf,
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Document PDF généré'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
+                onPressed: _openPdf,
               ),
             ],
           ),

@@ -459,6 +459,7 @@ class _BeneficiaryFormSheetState extends State<_BeneficiaryFormSheet> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
+  late TextEditingController _birthDateController;
   late TextEditingController _birthPlaceController;
   late TextEditingController _addressController;
   late TextEditingController _postalCodeController;
@@ -466,6 +467,7 @@ class _BeneficiaryFormSheetState extends State<_BeneficiaryFormSheet> {
   late TextEditingController _otherRelationshipController;
 
   DateTime? _birthDate;
+  String? _birthDateError;
   BeneficiaryRelationship _relationship = BeneficiaryRelationship.spouse;
   int _rank = 1;
 
@@ -490,6 +492,14 @@ class _BeneficiaryFormSheetState extends State<_BeneficiaryFormSheet> {
         TextEditingController(text: widget.beneficiary?.otherRelationship ?? '');
 
     _birthDate = widget.beneficiary?.birthDate;
+    // Initialiser le contrôleur de date avec la valeur existante
+    if (_birthDate != null) {
+      _birthDateController = TextEditingController(
+        text: DateFormat('dd/MM/yyyy').format(_birthDate!),
+      );
+    } else {
+      _birthDateController = TextEditingController();
+    }
     _relationship = widget.beneficiary?.relationship ?? BeneficiaryRelationship.spouse;
     _rank = widget.beneficiary?.rank ?? 1;
   }
@@ -498,6 +508,7 @@ class _BeneficiaryFormSheetState extends State<_BeneficiaryFormSheet> {
   void dispose() {
     _firstNameController.dispose();
     _lastNameController.dispose();
+    _birthDateController.dispose();
     _birthPlaceController.dispose();
     _addressController.dispose();
     _postalCodeController.dispose();
@@ -506,27 +517,109 @@ class _BeneficiaryFormSheetState extends State<_BeneficiaryFormSheet> {
     super.dispose();
   }
 
-  void _selectBirthDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _birthDate ?? DateTime(1980),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-      locale: const Locale('fr', 'FR'),
-    );
-    if (picked != null) {
-      setState(() => _birthDate = picked);
+  /// Valide et parse la date de naissance au format JJ/MM/AAAA
+  String? _validateBirthDate(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'La date de naissance est requise';
+    }
+
+    final trimmed = value.trim();
+
+    // Vérifier le format JJ/MM/AAAA
+    final regex = RegExp(r'^(\d{2})/(\d{2})/(\d{4})$');
+    final match = regex.firstMatch(trimmed);
+
+    if (match == null) {
+      return 'Format invalide (JJ/MM/AAAA)';
+    }
+
+    final day = int.tryParse(match.group(1)!);
+    final month = int.tryParse(match.group(2)!);
+    final year = int.tryParse(match.group(3)!);
+
+    if (day == null || month == null || year == null) {
+      return 'Date invalide';
+    }
+
+    // Vérifier les valeurs
+    if (month < 1 || month > 12) {
+      return 'Mois invalide (01-12)';
+    }
+
+    if (day < 1 || day > 31) {
+      return 'Jour invalide (01-31)';
+    }
+
+    // Vérifier les jours selon le mois
+    final daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    // Année bissextile
+    if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) {
+      daysInMonth[1] = 29;
+    }
+    if (day > daysInMonth[month - 1]) {
+      return 'Jour invalide pour ce mois';
+    }
+
+    // Vérifier que la date n'est pas dans le futur
+    try {
+      final date = DateTime(year, month, day);
+      final now = DateTime.now();
+      if (date.isAfter(now)) {
+        return 'La date ne peut pas être dans le futur';
+      }
+
+      // Vérifier que l'année est raisonnable (pas avant 1900)
+      if (year < 1900) {
+        return 'L\'année doit être après 1900';
+      }
+
+      // Stocker la date parsée
+      _birthDate = date;
+    } catch (e) {
+      return 'Date invalide';
+    }
+
+    return null;
+  }
+
+  /// Formate automatiquement la saisie de date avec des /
+  void _onBirthDateChanged(String value) {
+    // Retirer tous les caractères non numériques sauf /
+    String cleaned = value.replaceAll(RegExp(r'[^\d]'), '');
+
+    // Construire la nouvelle valeur formatée
+    String formatted = '';
+    for (int i = 0; i < cleaned.length && i < 8; i++) {
+      if (i == 2 || i == 4) {
+        formatted += '/';
+      }
+      formatted += cleaned[i];
+    }
+
+    // Mettre à jour le contrôleur si nécessaire
+    if (formatted != value) {
+      _birthDateController.value = TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+    }
+
+    // Réinitialiser l'erreur lors de la saisie
+    if (_birthDateError != null) {
+      setState(() => _birthDateError = null);
     }
   }
 
   void _submit() {
+    // Valider d'abord la date de naissance manuellement
+    final dateError = _validateBirthDate(_birthDateController.text);
+    if (dateError != null) {
+      setState(() => _birthDateError = dateError);
+    }
+
     if (!_formKey.currentState!.validate() || _birthDate == null) {
-      if (_birthDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Veuillez sélectionner une date de naissance'),
-          ),
-        );
+      if (_birthDate == null && _birthDateError == null) {
+        setState(() => _birthDateError = 'La date de naissance est requise');
       }
       return;
     }
@@ -564,7 +657,6 @@ class _BeneficiaryFormSheetState extends State<_BeneficiaryFormSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final dateFormat = DateFormat('dd/MM/yyyy');
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
@@ -653,60 +745,16 @@ class _BeneficiaryFormSheetState extends State<_BeneficiaryFormSheet> {
                     ),
                     AppSpacing.verticalGapMd,
 
-                    // Date de naissance
-                    Text(
-                      'Date de naissance *',
-                      style: AppTypography.labelMedium.copyWith(
-                        color: isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textPrimaryLight,
-                      ),
-                    ),
-                    AppSpacing.verticalGapXs,
-                    GestureDetector(
-                      onTap: _selectBirthDate,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.md,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.inputBackgroundDark
-                              : AppColors.inputBackgroundLight,
-                          borderRadius: AppSpacing.inputRadius,
-                          border: Border.all(
-                            color: isDark
-                                ? AppColors.borderDark
-                                : AppColors.borderLight,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today_outlined,
-                              color: isDark
-                                  ? AppColors.textSecondaryDark
-                                  : AppColors.textSecondaryLight,
-                            ),
-                            AppSpacing.horizontalGapMd,
-                            Text(
-                              _birthDate != null
-                                  ? dateFormat.format(_birthDate!)
-                                  : 'Sélectionner une date',
-                              style: AppTypography.bodyLarge.copyWith(
-                                color: _birthDate != null
-                                    ? (isDark
-                                        ? AppColors.textPrimaryDark
-                                        : AppColors.textPrimaryLight)
-                                    : (isDark
-                                        ? AppColors.textTertiaryDark
-                                        : AppColors.textTertiaryLight),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    // Date de naissance - Champ texte numérique
+                    AppInput(
+                      label: 'Date de naissance *',
+                      controller: _birthDateController,
+                      hint: 'JJ/MM/AAAA',
+                      keyboardType: TextInputType.number,
+                      onChanged: _onBirthDateChanged,
+                      validator: _validateBirthDate,
+                      errorText: _birthDateError,
+                      prefixIcon: Icons.cake_outlined,
                     ),
                     AppSpacing.verticalGapMd,
 

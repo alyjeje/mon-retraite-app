@@ -398,10 +398,27 @@ class _BeneficiariesScreenState extends State<BeneficiariesScreen> {
   }
 
   void _showDocumentPreview(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Document PDF en cours de chargement...'),
-        duration: Duration(seconds: 2),
+    // Dans une vraie app, on récupèrerait le document depuis le stockage
+    // Pour l'instant, afficher un message informatif
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('Document'),
+          ],
+        ),
+        content: const Text(
+          'Dans cette version de démonstration, le document signé serait stocké sur un serveur sécurisé et accessible depuis votre espace client.\n\nPour visualiser un nouveau document, effectuez une nouvelle désignation.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Compris'),
+          ),
+        ],
       ),
     );
   }
