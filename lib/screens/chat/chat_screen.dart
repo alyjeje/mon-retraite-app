@@ -18,7 +18,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isLoading = false;
 
   // Configuration du backend
-  static const String _backendUrl = 'http://localhost:5000';
+  static const String _backendUrl = 'https://chi-meters-bills-command.trycloudflare.com';
 
   @override
   void initState() {
