@@ -8,6 +8,7 @@ import '../documents/documents_screen.dart';
 import '../education/education_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../actions/actions_screen.dart';
+import '../chat/chat_screen.dart';
 
 /// Écran d'accueil / Dashboard - Design Figma
 class HomeScreen extends StatelessWidget {
@@ -20,6 +21,18 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ChatScreen()),
+        ),
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.smart_toy_outlined, color: Colors.white),
+        label: Text(
+          'Assistant',
+          style: AppTypography.buttonMedium.copyWith(color: Colors.white),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.only(bottom: 100),
