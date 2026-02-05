@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:dash_chat_2/dash_chat_2.dart';
+import 'package:intl/intl.dart';
 import '../../core/theme/theme.dart';
 
-/// Écran de chat avec l'assistant épargne retraite
+/// Écran de chat avec l'assistant épargne retraite - dash_chat_2
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
@@ -12,10 +15,20 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
+  // Utilisateurs
+  final ChatUser _currentUser = ChatUser(
+    id: '1',
+    firstName: 'Utilisateur',
+  );
+
+  final ChatUser _aiUser = ChatUser(
+    id: '2',
+    firstName: 'Assistant',
+    profileImage: 'ai_avatar', // Marqueur pour afficher l'avatar personnalisé
+  );
+
   final List<ChatMessage> _messages = [];
-  bool _isLoading = false;
+  bool _isTyping = false;
 
   // Configuration du backend
   static const String _backendUrl = 'https://chi-meters-bills-command.trycloudflare.com';
@@ -24,58 +37,49 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     // Message de bienvenue
-    _messages.add(
+    _messages.insert(
+      0,
       ChatMessage(
         text: "Bonjour ! Je suis votre assistant virtuel spécialisé dans l'épargne retraite. "
             "Je peux vous aider à comprendre les différents types de PER, la fiscalité, "
             "les trimestres de retraite et bien plus encore.\n\n"
             "Comment puis-je vous aider aujourd'hui ?",
-        isUser: false,
-        timestamp: DateTime.now(),
+        user: _aiUser,
+        createdAt: DateTime.now(),
       ),
     );
   }
 
-  @override
-  void dispose() {
-    _messageController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _sendMessage() async {
-    final text = _messageController.text.trim();
-    if (text.isEmpty || _isLoading) return;
-
+  Future<void> _handleSendPressed(ChatMessage message) async {
     // Ajouter le message de l'utilisateur
     setState(() {
-      _messages.add(ChatMessage(
-        text: text,
-        isUser: true,
-        timestamp: DateTime.now(),
-      ));
-      _isLoading = true;
+      _messages.insert(0, message);
+      _isTyping = true;
     });
 
-    _messageController.clear();
-    _scrollToBottom();
+    // DashChat utilise une liste inversée, les nouveaux messages apparaissent automatiquement en bas
 
     try {
       final response = await http.post(
         Uri.parse('$_backendUrl/chat'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'message': text}),
+        body: jsonEncode({'message': message.text}),
       ).timeout(const Duration(seconds: 120));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final aiResponse = ChatMessage(
+          text: data['response'] ?? "Désolé, je n'ai pas pu générer de réponse.",
+          user: _aiUser,
+          createdAt: DateTime.now(),
+          customProperties: {
+            'sources': (data['sources'] as List<dynamic>?)?.cast<String>(),
+          },
+        );
+
         setState(() {
-          _messages.add(ChatMessage(
-            text: data['response'] ?? "Désolé, je n'ai pas pu générer de réponse.",
-            isUser: false,
-            timestamp: DateTime.now(),
-            sources: (data['sources'] as List<dynamic>?)?.cast<String>(),
-          ));
+          _messages.insert(0, aiResponse);
+          _isTyping = false;
         });
       } else {
         _showErrorMessage("Une erreur s'est produite. Veuillez réessayer.");
@@ -84,33 +88,35 @@ class _ChatScreenState extends State<ChatScreen> {
       _showErrorMessage(
         "Impossible de contacter le serveur. Vérifiez que le backend est démarré.",
       );
-    } finally {
-      setState(() => _isLoading = false);
-      _scrollToBottom();
     }
   }
 
-  void _showErrorMessage(String message) {
+  void _showErrorMessage(String errorText) {
     setState(() {
-      _messages.add(ChatMessage(
-        text: message,
-        isUser: false,
-        timestamp: DateTime.now(),
-        isError: true,
-      ));
+      _messages.insert(
+        0,
+        ChatMessage(
+          text: errorText,
+          user: _aiUser,
+          createdAt: DateTime.now(),
+          customProperties: {'isError': true},
+        ),
+      );
+      _isTyping = false;
     });
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+  void _copyMessage(ChatMessage message) {
+    Clipboard.setData(ClipboardData(text: message.text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Message copié'),
+        backgroundColor: AppColors.success,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
   }
 
   @override
@@ -119,89 +125,228 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-      appBar: AppBar(
-        backgroundColor: isDark ? AppColors.cardDark : AppColors.cardLight,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.primaryLighter,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.smart_toy_outlined,
-                color: AppColors.primary,
-                size: 24,
-              ),
-            ),
-            AppSpacing.horizontalGapSm,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Assistant Retraite',
-                    style: AppTypography.labelLarge.copyWith(
-                      color: isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimaryLight,
-                    ),
-                  ),
-                  Text(
-                    'En ligne',
-                    style: AppTypography.caption.copyWith(
-                      color: AppColors.success,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: isDark ? AppColors.borderDark : AppColors.borderLight,
-          ),
-        ),
-      ),
+      appBar: _buildAppBar(isDark),
       body: Column(
         children: [
           // Disclaimer permanent
           _buildDisclaimer(isDark),
 
-          // Liste des messages
+          // Chat
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm,
+            child: DashChat(
+              currentUser: _currentUser,
+              onSend: _handleSendPressed,
+              messages: _messages,
+              typingUsers: _isTyping ? [_aiUser] : [],
+              inputOptions: InputOptions(
+                inputDecoration: InputDecoration(
+                  hintText: 'Posez votre question...',
+                  hintStyle: AppTypography.bodyMedium.copyWith(
+                    color: isDark
+                        ? AppColors.textTertiaryDark
+                        : AppColors.textTertiaryLight,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide(
+                      color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide(
+                      color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                  ),
+                  filled: true,
+                  fillColor: isDark
+                      ? AppColors.inputBackgroundDark
+                      : AppColors.inputBackgroundLight,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                inputTextStyle: AppTypography.bodyMedium.copyWith(
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimaryLight,
+                ),
+                sendButtonBuilder: (onSend) => _buildSendButton(onSend, isDark),
               ),
-              itemCount: _messages.length + (_isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == _messages.length && _isLoading) {
-                  return _buildTypingIndicator(isDark);
-                }
-                return _buildMessageBubble(_messages[index], isDark);
-              },
+              messageOptions: MessageOptions(
+                showTime: true,
+                timeFormat: DateFormat('HH:mm'),
+                currentUserContainerColor: AppColors.primary,
+                currentUserTextColor: Colors.white,
+                containerColor: isDark ? AppColors.cardDark : AppColors.cardLight,
+                textColor: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight,
+                messagePadding: const EdgeInsets.all(12),
+                borderRadius: 16,
+                onLongPressMessage: _copyMessage,
+                messageDecorationBuilder: (message, previousMessage, nextMessage) {
+                  final isUser = message.user.id == _currentUser.id;
+                  final isError = message.customProperties?['isError'] == true;
+
+                  return BoxDecoration(
+                    color: isUser
+                        ? AppColors.primary
+                        : isError
+                            ? (isDark ? AppColors.errorLightDark : AppColors.errorLight)
+                            : (isDark ? AppColors.cardDark : AppColors.cardLight),
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(16),
+                      topRight: const Radius.circular(16),
+                      bottomLeft: Radius.circular(isUser ? 16 : 4),
+                      bottomRight: Radius.circular(isUser ? 4 : 16),
+                    ),
+                    border: isUser
+                        ? null
+                        : Border.all(
+                            color: isError
+                                ? AppColors.error.withValues(alpha: 0.3)
+                                : (isDark
+                                    ? AppColors.borderDark
+                                    : AppColors.borderLight),
+                          ),
+                  );
+                },
+                messageTextBuilder: (message, previousMessage, nextMessage) {
+                  final isError = message.customProperties?['isError'] == true;
+                  final sources = message.customProperties?['sources'] as List<String>?;
+                  final isUser = message.user.id == _currentUser.id;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        message.text,
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: isUser
+                              ? Colors.white
+                              : isError
+                                  ? AppColors.errorTextOnLight
+                                  : (isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimaryLight),
+                        ),
+                      ),
+                      if (sources != null && sources.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Sources: ${sources.join(", ")}',
+                          style: AppTypography.caption.copyWith(
+                            color: isDark
+                                ? AppColors.textTertiaryDark
+                                : AppColors.textTertiaryLight,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                },
+                avatarBuilder: (user, onAvatarTap, onAvatarLongPress) {
+                  if (user.id == _aiUser.id) {
+                    return _buildAIAvatar(isDark);
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+              messageListOptions: const MessageListOptions(),
             ),
           ),
-
-          // Zone de saisie
-          _buildInputArea(isDark),
         ],
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(bool isDark) {
+    return AppBar(
+      backgroundColor: isDark ? AppColors.cardDark : AppColors.cardLight,
+      elevation: 0,
+      leading: IconButton(
+        icon: Icon(
+          Icons.arrow_back,
+          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+        ),
+        onPressed: () => Navigator.pop(context),
+      ),
+      title: Row(
+        children: [
+          _buildAIAvatar(isDark),
+          AppSpacing.horizontalGapSm,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Assistant Retraite',
+                  style: AppTypography.labelLarge.copyWith(
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimaryLight,
+                  ),
+                ),
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.success,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _isTyping ? 'En train d\'écrire...' : 'En ligne',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.success,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Container(
+          height: 1,
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAIAvatar(bool isDark) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: const Icon(
+        Icons.smart_toy_outlined,
+        color: Colors.white,
+        size: 22,
       ),
     );
   }
@@ -242,291 +387,32 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildMessageBubble(ChatMessage message, bool isDark) {
-    final isUser = message.isUser;
-    final isError = message.isError;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Row(
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!isUser) ...[
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: isError ? AppColors.errorLight : AppColors.primaryLighter,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isError ? Icons.error_outline : Icons.smart_toy_outlined,
-                color: isError ? AppColors.error : AppColors.primary,
-                size: 18,
-              ),
-            ),
-            AppSpacing.horizontalGapXs,
-          ],
-          Flexible(
-            child: Column(
-              crossAxisAlignment:
-                  isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-              children: [
-                Container(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.75,
-                  ),
-                  padding: const EdgeInsets.all(AppSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: isUser
-                        ? AppColors.primary
-                        : isError
-                            ? (isDark ? AppColors.errorLightDark : AppColors.errorLight)
-                            : (isDark ? AppColors.cardDark : AppColors.cardLight),
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(AppSpacing.radiusMd),
-                      topRight: const Radius.circular(AppSpacing.radiusMd),
-                      bottomLeft: Radius.circular(isUser ? AppSpacing.radiusMd : 4),
-                      bottomRight: Radius.circular(isUser ? 4 : AppSpacing.radiusMd),
-                    ),
-                    border: isUser
-                        ? null
-                        : Border.all(
-                            color: isError
-                                ? AppColors.error.withValues(alpha: 0.3)
-                                : (isDark
-                                    ? AppColors.borderDark
-                                    : AppColors.borderLight),
-                          ),
-                  ),
-                  child: Text(
-                    message.text,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: isUser
-                          ? Colors.white
-                          : isError
-                              ? AppColors.error
-                              : (isDark
-                                  ? AppColors.textPrimaryDark
-                                  : AppColors.textPrimaryLight),
-                    ),
-                  ),
-                ),
-                if (message.sources != null && message.sources!.isNotEmpty) ...[
-                  AppSpacing.verticalGapXxs,
-                  Text(
-                    'Sources: ${message.sources!.join(", ")}',
-                    style: AppTypography.caption.copyWith(
-                      color: isDark
-                          ? AppColors.textTertiaryDark
-                          : AppColors.textTertiaryLight,
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-                AppSpacing.verticalGapXxs,
-                Text(
-                  _formatTime(message.timestamp),
-                  style: AppTypography.caption.copyWith(
-                    color: isDark
-                        ? AppColors.textTertiaryDark
-                        : AppColors.textTertiaryLight,
-                    fontSize: 10,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (isUser) ...[
-            AppSpacing.horizontalGapXs,
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.primaryLighter,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.person,
-                color: AppColors.primary,
-                size: 18,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTypingIndicator(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppColors.primaryLighter,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.smart_toy_outlined,
-              color: AppColors.primary,
-              size: 18,
-            ),
-          ),
-          AppSpacing.horizontalGapXs,
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.cardDark : AppColors.cardLight,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              border: Border.all(
-                color: isDark ? AppColors.borderDark : AppColors.borderLight,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildTypingDot(0),
-                AppSpacing.horizontalGapXxs,
-                _buildTypingDot(1),
-                AppSpacing.horizontalGapXxs,
-                _buildTypingDot(2),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTypingDot(int index) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 600 + (index * 200)),
-      builder: (context, value, child) {
-        return Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.3 + (value * 0.5)),
-            shape: BoxShape.circle,
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildInputArea(bool isDark) {
+  Widget _buildSendButton(Function() onSend, bool isDark) {
     return Container(
-      padding: EdgeInsets.only(
-        left: AppSpacing.md,
-        right: AppSpacing.md,
-        top: AppSpacing.sm,
-        bottom: MediaQuery.of(context).padding.bottom + AppSpacing.sm,
-      ),
+      margin: const EdgeInsets.only(left: 8),
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
-        border: Border(
-          top: BorderSide(
-            color: isDark ? AppColors.borderDark : AppColors.borderLight,
-          ),
+        color: _isTyping ? AppColors.mutedLight : AppColors.primary,
+        shape: BoxShape.circle,
+        boxShadow: _isTyping
+            ? null
+            : [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+      ),
+      child: IconButton(
+        onPressed: _isTyping ? null : onSend,
+        icon: Icon(
+          _isTyping ? Icons.hourglass_empty : Icons.send,
+          color: Colors.white,
+          size: 20,
         ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _messageController,
-              decoration: InputDecoration(
-                hintText: 'Posez votre question...',
-                hintStyle: AppTypography.bodyMedium.copyWith(
-                  color: isDark
-                      ? AppColors.textTertiaryDark
-                      : AppColors.textTertiaryLight,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                  borderSide: BorderSide(
-                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                  borderSide: BorderSide(
-                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                  borderSide: BorderSide(
-                    color: AppColors.primary,
-                    width: 2,
-                  ),
-                ),
-                filled: true,
-                fillColor: isDark
-                    ? AppColors.inputBackgroundDark
-                    : AppColors.inputBackgroundLight,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
-              ),
-              style: AppTypography.bodyMedium.copyWith(
-                color: isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimaryLight,
-              ),
-              textInputAction: TextInputAction.send,
-              onSubmitted: (_) => _sendMessage(),
-              maxLines: null,
-              keyboardType: TextInputType.multiline,
-            ),
-          ),
-          AppSpacing.horizontalGapSm,
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: _isLoading ? AppColors.mutedLight : AppColors.primary,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              onPressed: _isLoading ? null : _sendMessage,
-              icon: Icon(
-                _isLoading ? Icons.hourglass_empty : Icons.send,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
-
-  String _formatTime(DateTime timestamp) {
-    return '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
-  }
-}
-
-/// Modèle de message de chat
-class ChatMessage {
-  final String text;
-  final bool isUser;
-  final DateTime timestamp;
-  final List<String>? sources;
-  final bool isError;
-
-  ChatMessage({
-    required this.text,
-    required this.isUser,
-    required this.timestamp,
-    this.sources,
-    this.isError = false,
-  });
 }
