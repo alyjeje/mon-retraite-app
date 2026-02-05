@@ -16,7 +16,7 @@ CORS(app)
 
 # Configuration
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "mistral")
 KNOWLEDGE_BASE_PATH = os.getenv("KNOWLEDGE_BASE_PATH", "../knowledge_base")
 CHROMA_PERSIST_PATH = os.getenv("CHROMA_PERSIST_PATH", "./chroma_db")
 
@@ -24,6 +24,16 @@ CHROMA_PERSIST_PATH = os.getenv("CHROMA_PERSIST_PATH", "./chroma_db")
 SYSTEM_PROMPT = """Tu es un assistant virtuel spécialisé dans l'épargne retraite française.
 Tu réponds uniquement aux questions concernant les Plans d'Épargne Retraite (PER), la fiscalité associée,
 les trimestres de retraite, et les aspects réglementaires de l'épargne retraite en France.
+
+DÉFINITIONS OBLIGATOIRES - Utilise TOUJOURS ces définitions exactes, ne jamais inventer d'autres significations :
+- PERIN = PER Individuel (successeur du PERP et Madelin)
+- PERO = PER Obligatoire (ex Article 83) - mis en place par l'entreprise avec adhésion obligatoire
+- PERECO ou PERCOL = PER d'Entreprise Collectif (ex PERCO) - mis en place par l'entreprise avec adhésion facultative
+- PERP = Plan d'Épargne Retraite Populaire (ancien produit fermé depuis 2020)
+- Madelin = Contrat retraite pour Travailleurs Non-Salariés (ancien produit fermé depuis 2020)
+- Rente = Versement périodique garanti à vie
+- Capital = Versement en une seule fois de l'épargne accumulée
+- Trimestres = Unité de mesure de la durée d'assurance pour la retraite de base
 
 RÈGLES STRICTES À RESPECTER :
 

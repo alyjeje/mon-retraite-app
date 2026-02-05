@@ -17,9 +17,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   String _otpCode = '';
 
   final _formData = {
-    'firstName': 'Sophie',
+    'firstName': 'Jeremy',
     'lastName': 'Martin',
-    'email': 'sophie.martin@email.com',
+    'email': 'jeremy.martin@email.com',
     'phone': '06 12 34 56 78',
     'address': '12 rue de la République',
     'postalCode': '75001',
