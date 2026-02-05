@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/theme.dart';
 import '../../widgets/widgets.dart';
+import 'beneficiary_designation_flow_screen.dart';
 
 /// Écran de gestion des bénéficiaires
 class BeneficiariesScreen extends StatelessWidget {
@@ -145,7 +146,7 @@ class BeneficiariesScreen extends StatelessWidget {
                   label: 'Ajouter',
                   variant: AppButtonVariant.primary,
                   leadingIcon: Icons.add,
-                  onPressed: () => _showComingSoon(context),
+                  onPressed: () => _navigateToDesignationFlow(context),
                 ),
               ],
             ),
@@ -202,6 +203,17 @@ class BeneficiariesScreen extends StatelessWidget {
 
             AppSpacing.verticalGapXxl,
           ],
+        ),
+      ),
+    );
+  }
+
+  void _navigateToDesignationFlow(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const BeneficiaryDesignationFlowScreen(
+          contractId: 'PERIN-2024-001',
+          contractName: 'Mon PERIN GAN',
         ),
       ),
     );
