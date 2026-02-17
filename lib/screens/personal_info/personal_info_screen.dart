@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/theme.dart';
+import '../../data/models/user_model.dart';
+import '../../providers/app_provider.dart';
 import '../../widgets/widgets.dart';
 
 /// Écran des informations personnelles
@@ -13,19 +17,28 @@ class PersonalInfoScreen extends StatefulWidget {
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   bool _isEditing = false;
   bool _isSaved = false;
+  bool _isSaving = false;
   bool _showOTPModal = false;
   String _otpCode = '';
 
-  final _formData = {
-    'firstName': 'Jeremy',
-    'lastName': 'Martin',
-    'email': 'jeremy.martin@email.com',
-    'phone': '06 12 34 56 78',
-    'address': '12 rue de la République',
-    'postalCode': '75001',
-    'city': 'Paris',
-    'birthDate': '15/03/1981',
-  };
+  late Map<String, String> _formData;
+  bool _initialized = false;
+
+  void _initFormData(UserModel user) {
+    if (_initialized) return;
+    final dateFormat = DateFormat('dd/MM/yyyy');
+    _formData = {
+      'firstName': user.firstName,
+      'lastName': user.lastName,
+      'email': user.email,
+      'phone': user.phone,
+      'address': user.address.street,
+      'postalCode': user.address.postalCode,
+      'city': user.address.city,
+      'birthDate': dateFormat.format(user.birthDate),
+    };
+    _initialized = true;
+  }
 
   void _handleSave() {
     setState(() {
@@ -33,30 +46,91 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     });
   }
 
-  void _handleOTPValidation() {
+  Future<void> _handleOTPValidation() async {
     if (_otpCode.length == 6) {
       setState(() {
         _showOTPModal = false;
-        _isEditing = false;
-        _isSaved = true;
-        _otpCode = '';
+        _isSaving = true;
       });
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) {
-          setState(() {
-            _isSaved = false;
+
+      final provider = context.read<AppProvider>();
+      final user = provider.user;
+
+      // Determiner ce qui a change
+      String? newEmail;
+      String? newPhone;
+      AddressModel? newAddress;
+
+      if (_formData['email'] != user.email) {
+        newEmail = _formData['email'];
+      }
+      if (_formData['phone'] != user.phone) {
+        newPhone = _formData['phone'];
+      }
+      if (_formData['address'] != user.address.street ||
+          _formData['postalCode'] != user.address.postalCode ||
+          _formData['city'] != user.address.city) {
+        newAddress = AddressModel(
+          street: _formData['address']!,
+          postalCode: _formData['postalCode']!,
+          city: _formData['city']!,
+        );
+      }
+
+      final success = await provider.updateProfile(
+        email: newEmail,
+        phone: newPhone,
+        address: newAddress,
+      );
+
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+          _isEditing = false;
+          _otpCode = '';
+          if (success) {
+            _isSaved = true;
+            // Reinitialiser le formulaire avec les nouvelles donnees
+            _initialized = false;
+          }
+        });
+
+        if (!success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Erreur lors de la mise à jour.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+
+        if (_isSaved) {
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted) {
+              setState(() => _isSaved = false);
+            }
           });
         }
-      });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final provider = context.watch<AppProvider>();
+    final user = provider.user;
+    _initFormData(user);
 
     if (_showOTPModal) {
-      return _buildOTPScreen(context, isDark);
+      return _buildOTPScreen(context, isDark, user);
+    }
+
+    if (_isSaving) {
+      return Scaffold(
+        backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(
@@ -331,7 +405,13 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     );
   }
 
-  Widget _buildOTPScreen(BuildContext context, bool isDark) {
+  String _maskPhone(String phone) {
+    final clean = phone.replaceAll(' ', '');
+    if (clean.length < 4) return phone;
+    return '${clean.substring(0, 2)} ** ** ** ${clean.substring(clean.length - 2)}';
+  }
+
+  Widget _buildOTPScreen(BuildContext context, bool isDark, UserModel user) {
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
       appBar: AppBar(
@@ -373,7 +453,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
             ),
             AppSpacing.verticalGapSm,
             Text(
-              'Un code de sécurité a été envoyé au 06 12 ** ** 78',
+              'Un code de sécurité a été envoyé au ${_maskPhone(user.phone)}',
               style: AppTypography.bodyMedium.copyWith(
                 color: isDark
                     ? AppColors.textSecondaryDark
