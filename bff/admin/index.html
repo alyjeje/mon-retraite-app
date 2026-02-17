@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Mon Epargne Retraite</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f0f2f5; color: #1a1a2e; min-height: 100vh; }
+
+    /* Header */
+    .header { background: #003D7A; color: white; padding: 16px 24px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header .badge { background: #FFB81C; color: #003D7A; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+
+    /* Layout */
+    .container { max-width: 960px; margin: 24px auto; padding: 0 16px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* Cards */
+    .card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden; }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid #e8eaed; display: flex; align-items: center; justify-content: space-between; }
+    .card-header h2 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .card-body { padding: 20px; }
+
+    /* Config form */
+    .config-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .config-row label { font-size: 13px; color: #555; min-width: 180px; }
+    .config-row input, .config-row select { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; width: 120px; }
+    .config-row input:focus, .config-row select:focus { outline: none; border-color: #003D7A; box-shadow: 0 0 0 2px rgba(0,61,122,0.15); }
+
+    /* Buttons */
+    .btn { padding: 8px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .btn-primary { background: #003D7A; color: white; }
+    .btn-primary:hover { background: #002d5c; }
+    .btn-warning { background: #FFB81C; color: #003D7A; }
+    .btn-warning:hover { background: #e5a518; }
+    .btn-success { background: #059669; color: white; }
+    .btn-success:hover { background: #047857; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Clients table */
+    .clients-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .clients-table th { text-align: left; padding: 10px 12px; color: #666; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e8eaed; }
+    .clients-table td { padding: 10px 12px; border-bottom: 1px solid #f0f2f5; }
+    .clients-table tr:hover td { background: #f8f9fb; }
+
+    /* Status badges */
+    .status { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .status-online { background: #d1fae5; color: #065f46; }
+    .status-offline { background: #f3f4f6; color: #6b7280; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .status-online .status-dot { background: #059669; }
+    .status-offline .status-dot { background: #9ca3af; }
+
+    /* Notification form */
+    .notif-form { display: flex; flex-direction: column; gap: 12px; }
+    .notif-form label { font-size: 13px; color: #555; font-weight: 500; }
+    .notif-form input, .notif-form textarea, .notif-form select { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit; }
+    .notif-form textarea { resize: vertical; min-height: 60px; }
+    .notif-form input:focus, .notif-form textarea:focus, .notif-form select:focus { outline: none; border-color: #003D7A; box-shadow: 0 0 0 2px rgba(0,61,122,0.15); }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 10px; color: white; font-size: 13px; font-weight: 500; opacity: 0; transform: translateY(10px); transition: all 0.3s; z-index: 1000; max-width: 360px; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast-success { background: #059669; }
+    .toast-error { background: #dc2626; }
+    .toast-info { background: #003D7A; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 32px; color: #9ca3af; font-size: 13px; }
+
+    /* Refresh indicator */
+    .refresh-btn { background: none; border: 1px solid #d1d5db; border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 12px; color: #666; transition: all 0.15s; }
+    .refresh-btn:hover { border-color: #003D7A; color: #003D7A; }
+    .spinning { animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    <h1>Mon Epargne Retraite</h1>
+    <span class="badge">ADMIN</span>
+  </div>
+
+  <div class="container">
+
+    <!-- Configuration -->
+    <div class="card">
+      <div class="card-header">
+        <h2>&#9881; Configuration</h2>
+      </div>
+      <div class="card-body">
+        <div class="config-row">
+          <label>Timeout d'inactivite</label>
+          <input type="number" id="timeout-input" min="1" max="1440" value="60" style="width:80px;">
+          <span style="font-size:13px;color:#666;">minutes</span>
+          <button class="btn btn-primary btn-sm" onclick="saveConfig()">Sauvegarder</button>
+        </div>
+        <p style="font-size:12px;color:#9ca3af;margin-top:8px;">L'utilisateur sera deconnecte apres cette duree d'inactivite. La nouvelle valeur s'applique au prochain login.</p>
+      </div>
+    </div>
+
+    <!-- Clients connectes -->
+    <div class="card">
+      <div class="card-header">
+        <h2>&#128100; Clients</h2>
+        <button class="refresh-btn" onclick="loadClients()" id="refresh-clients">&#8635; Rafraichir</button>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <table class="clients-table">
+          <thead>
+            <tr>
+              <th>Identifiant</th>
+              <th>Nom</th>
+              <th>Epargne</th>
+              <th>Contrats</th>
+              <th>Statut</th>
+              <th>Dernier login</th>
+              <th>Push</th>
+            </tr>
+          </thead>
+          <tbody id="clients-body">
+            <tr><td colspan="7" class="empty">Chargement...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="card">
+      <div class="card-header">
+        <h2>&#128276; Notifications Push</h2>
+      </div>
+      <div class="card-body">
+        <div class="notif-form">
+          <div>
+            <label>Destinataire</label>
+            <select id="notif-target" style="width:100%;margin-top:4px;">
+              <option value="">Tous les clients enregistres</option>
+            </select>
+          </div>
+          <div>
+            <label>Type</label>
+            <select id="notif-type" style="width:100%;margin-top:4px;">
+              <option value="general">General</option>
+              <option value="versement">Versement effectue</option>
+              <option value="document">Nouveau document</option>
+              <option value="alerte">Alerte importante</option>
+              <option value="promo">Offre promotionnelle</option>
+            </select>
+          </div>
+          <div>
+            <label>Titre</label>
+            <input type="text" id="notif-title" placeholder="Titre de la notification" style="width:100%;margin-top:4px;">
+          </div>
+          <div>
+            <label>Message</label>
+            <textarea id="notif-body" placeholder="Corps de la notification" style="width:100%;margin-top:4px;"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-warning" onclick="sendNotification()">Envoyer la notification</button>
+            <span id="notif-status" style="font-size:12px;color:#666;"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = '/admin/api';
+
+    // Toast notification
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast toast-${type} show`;
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // Load config
+    async function loadConfig() {
+      try {
+        const res = await fetch(`${API}/config`);
+        const config = await res.json();
+        document.getElementById('timeout-input').value = config.inactivity_timeout_minutes || 60;
+      } catch (e) {
+        showToast('Erreur chargement config', 'error');
+      }
+    }
+
+    // Save config
+    async function saveConfig() {
+      const timeout = document.getElementById('timeout-input').value;
+      try {
+        const res = await fetch(`${API}/config`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ inactivity_timeout_minutes: timeout }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Timeout mis a jour : ${timeout} minutes`);
+        }
+      } catch (e) {
+        showToast('Erreur sauvegarde', 'error');
+      }
+    }
+
+    // Load clients
+    async function loadClients() {
+      try {
+        const res = await fetch(`${API}/clients`);
+        const clients = await res.json();
+        const tbody = document.getElementById('clients-body');
+        const select = document.getElementById('notif-target');
+
+        // Reset select (keep first "all" option)
+        select.innerHTML = '<option value="">Tous les clients enregistres</option>';
+
+        if (clients.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="empty">Aucun client</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = clients.map(c => `
+          <tr>
+            <td><code style="background:#f0f2f5;padding:2px 6px;border-radius:4px;font-size:12px;">${c.identifiant}</code></td>
+            <td>${c.nom}</td>
+            <td style="font-weight:600;">${Number(c.epargne).toLocaleString('fr-FR')}\u202F\u20AC</td>
+            <td>${c.nbContrats}</td>
+            <td>
+              <span class="status ${c.connected ? 'status-online' : 'status-offline'}">
+                <span class="status-dot"></span>
+                ${c.connected ? 'Connecte' : 'Hors ligne'}
+              </span>
+            </td>
+            <td style="font-size:12px;color:#666;">${c.lastLogin ? new Date(c.lastLogin + 'Z').toLocaleString('fr-FR') : '-'}</td>
+            <td>${c.hasFcmToken ? '<span style="color:#059669;">&#10003;</span>' : '<span style="color:#d1d5db;">&#8211;</span>'}</td>
+          </tr>
+        `).join('');
+
+        // Populate notification select
+        clients.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.identifiant;
+          opt.textContent = `${c.identifiant} - ${c.nom}`;
+          select.appendChild(opt);
+        });
+      } catch (e) {
+        showToast('Erreur chargement clients', 'error');
+      }
+    }
+
+    // Send notification
+    async function sendNotification() {
+      const target = document.getElementById('notif-target').value;
+      const type = document.getElementById('notif-type').value;
+      const title = document.getElementById('notif-title').value.trim();
+      const body = document.getElementById('notif-body').value.trim();
+
+      if (!title || !body) {
+        showToast('Titre et message requis', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/notifications/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            identifiant: target || undefined,
+            title,
+            body,
+            type,
+          }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          const sim = data.simulated ? ' (simulee)' : '';
+          showToast(`Notification envoyee a ${data.recipients} device(s)${sim}`);
+          document.getElementById('notif-title').value = '';
+          document.getElementById('notif-body').value = '';
+        } else {
+          showToast(data.error || data.message || 'Erreur', 'error');
+        }
+      } catch (e) {
+        showToast('Erreur envoi notification', 'error');
+      }
+    }
+
+    // Auto-fill notification fields based on type
+    document.getElementById('notif-type').addEventListener('change', function() {
+      const title = document.getElementById('notif-title');
+      const body = document.getElementById('notif-body');
+      const templates = {
+        general: { title: '', body: '' },
+        versement: { title: 'Versement enregistre', body: 'Votre versement a bien ete pris en compte et sera traite sous 48h.' },
+        document: { title: 'Nouveau document disponible', body: 'Un nouveau releve est disponible dans votre espace personnel.' },
+        alerte: { title: 'Information importante', body: 'Une mise a jour importante concerne votre contrat d\'epargne retraite.' },
+        promo: { title: 'Offre speciale', body: 'Profitez d\'un abondement exceptionnel sur vos versements ce mois-ci !' },
+      };
+      const tpl = templates[this.value];
+      if (tpl && tpl.title) {
+        title.value = tpl.title;
+        body.value = tpl.body;
+      }
+    });
+
+    // Auto-refresh every 30s
+    setInterval(loadClients, 30000);
+
+    // Initial load
+    loadConfig();
+    loadClients();
+  </script>
+</body>
+</html>

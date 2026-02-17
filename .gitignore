@@ -72,3 +72,8 @@ bff/dist/
 bff/mock_data.db
 bff/mock_data.db-wal
 bff/mock_data.db-shm
+
+# Firebase config (secrets)
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+bff/firebase-service-account.json

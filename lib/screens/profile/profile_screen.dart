@@ -19,6 +19,26 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _notificationsEnabled = true;
   bool _darkModeEnabled = false;
+  bool _biometricEnabled = false;
+  bool _biometricAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricState();
+  }
+
+  Future<void> _loadBiometricState() async {
+    final provider = context.read<AppProvider>();
+    final available = await provider.biometricService.isAvailable();
+    final enabled = await provider.isBiometricEnabled();
+    if (mounted) {
+      setState(() {
+        _biometricAvailable = available;
+        _biometricEnabled = enabled;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +114,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     subtitle: 'Modifié il y a 2 mois',
                     onTap: () {},
                   ),
+                  if (_biometricAvailable)
+                    _ProfileItem(
+                      icon: Icons.fingerprint,
+                      label: 'Connexion biométrique',
+                      subtitle: _biometricEnabled ? 'Activée' : 'Désactivée',
+                      hasSwitch: true,
+                      switchValue: _biometricEnabled,
+                      onSwitchChanged: (value) async {
+                        if (value) {
+                          // Can't enable from here without credentials
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Reconnectez-vous pour activer la biométrie',
+                              ),
+                            ),
+                          );
+                        } else {
+                          await provider.disableBiometric();
+                          setState(() => _biometricEnabled = false);
+                        }
+                      },
+                    ),
                   _ProfileItem(
                     icon: Icons.shield_outlined,
                     label: 'Authentification à 2 facteurs',

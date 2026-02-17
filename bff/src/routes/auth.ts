@@ -7,6 +7,7 @@ import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { proxyToUpstream } from '../middleware/proxy';
+import { getAdminConfig, setConnectedClient, removeConnectedClient } from '../mock/database';
 
 const router = Router();
 
@@ -61,10 +62,17 @@ router.post('/login', async (req: Request, res: Response) => {
         { expiresIn: '1h' }
       );
 
+      // Track connected client
+      setConnectedClient(identifiant, req.headers['user-agent'] || undefined);
+
+      // Get inactivity timeout from admin config
+      const timeoutMin = parseInt(getAdminConfig('inactivity_timeout_minutes') || '60', 10);
+
       return res.json({
         success: true,
         token: bffToken,
         expiresIn: data.expires_in || 3600,
+        inactivityTimeoutMinutes: timeoutMin,
       });
     }
 
@@ -147,6 +155,34 @@ router.post('/refresh', (req: Request, res: Response) => {
       { expiresIn: '1h' }
     );
     res.json({ success: true, token: newToken, expiresIn: 3600 });
+  } catch {
+    res.status(401).json({ error: 'Token invalide' });
+  }
+});
+
+/**
+ * GET /auth/config
+ * Retourne la config publique (timeout, etc.) - pas besoin de token
+ */
+router.get('/config', (_req: Request, res: Response) => {
+  const timeoutMin = parseInt(getAdminConfig('inactivity_timeout_minutes') || '60', 10);
+  res.json({ inactivityTimeoutMinutes: timeoutMin });
+});
+
+/**
+ * POST /auth/logout
+ * Supprime le client de la liste des connectes
+ */
+router.post('/logout', (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Token manquant' });
+  }
+
+  try {
+    const decoded = jwt.verify(authHeader.split(' ')[1], config.bff.jwtSecret) as any;
+    removeConnectedClient(String(decoded.particip));
+    res.json({ success: true });
   } catch {
     res.status(401).json({ error: 'Token invalide' });
   }

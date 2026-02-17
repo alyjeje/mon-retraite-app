@@ -7,6 +7,7 @@ class AuthResult {
   final String? error;
   final String? message;
   final int? statutConnexion;
+  final int? inactivityTimeoutMinutes;
 
   AuthResult({
     required this.success,
@@ -14,6 +15,7 @@ class AuthResult {
     this.error,
     this.message,
     this.statutConnexion,
+    this.inactivityTimeoutMinutes,
   });
 }
 
@@ -31,7 +33,11 @@ class AuthRepository {
 
       if (data['success'] == true) {
         _api.setToken(data['token']);
-        return AuthResult(success: true, token: data['token']);
+        return AuthResult(
+          success: true,
+          token: data['token'],
+          inactivityTimeoutMinutes: data['inactivityTimeoutMinutes'] as int?,
+        );
       }
 
       return AuthResult(
@@ -72,7 +78,12 @@ class AuthRepository {
     }
   }
 
-  void logout() {
+  Future<void> logout() async {
+    try {
+      await _api.post('/auth/logout');
+    } catch (_) {
+      // Ignore errors - we're logging out anyway
+    }
     _api.clearToken();
   }
 }

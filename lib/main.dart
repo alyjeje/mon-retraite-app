@@ -6,6 +6,7 @@ import 'core/theme/app_theme.dart';
 import 'providers/app_provider.dart';
 import 'screens/main_shell.dart';
 import 'screens/login/login_screen.dart';
+import 'screens/login/biometric_prompt_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,8 +26,8 @@ void main() async {
   runApp(const MonRetraiteApp());
 }
 
-/// Application Mon Épargne Retraite
-/// Prototype pour assurés retraités - Gan Assurances
+/// Application Mon Epargne Retraite
+/// Prototype pour assures retraites - Gan Assurances
 class MonRetraiteApp extends StatelessWidget {
   const MonRetraiteApp({super.key});
 
@@ -36,22 +37,34 @@ class MonRetraiteApp extends StatelessWidget {
       create: (_) => AppProvider(),
       child: Consumer<AppProvider>(
         builder: (context, provider, _) {
-          return MaterialApp(
-            title: 'Mon Épargne Retraite',
-            debugShowCheckedModeBanner: false,
+          return Listener(
+            onPointerDown: (_) => provider.resetInactivityTimer(),
+            onPointerMove: (_) => provider.resetInactivityTimer(),
+            child: MaterialApp(
+              title: 'Mon Epargne Retraite',
+              debugShowCheckedModeBanner: false,
 
-            // Thèmes
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: provider.themeMode,
+              // Themes
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: provider.themeMode,
 
-            // Auth gate: login si pas connecte, app si connecte
-            home: provider.isAuthenticated
-                ? const MainShell()
-                : const LoginScreen(),
+              // Auth gate: 3 etats
+              home: _buildAuthGate(provider),
+            ),
           );
         },
       ),
     );
+  }
+
+  Widget _buildAuthGate(AppProvider provider) {
+    if (provider.isAuthenticated) {
+      return const MainShell();
+    }
+    if (provider.requiresBiometricAuth) {
+      return const BiometricPromptScreen();
+    }
+    return const LoginScreen();
   }
 }

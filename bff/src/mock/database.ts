@@ -37,6 +37,25 @@ db.exec(`
     code_postal TEXT NOT NULL,
     ville TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS admin_config (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS fcm_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    identifiant TEXT NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    device_info TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS connected_clients (
+    identifiant TEXT PRIMARY KEY,
+    last_login TEXT NOT NULL DEFAULT (datetime('now')),
+    device_info TEXT
+  );
 `);
 
 // ============================================
@@ -336,10 +355,19 @@ function seedIfEmpty() {
     insertCpVille.run(id, cp, ville);
   }
 
+  // --- Admin config defaults ---
+  db.prepare(`INSERT OR IGNORE INTO admin_config (key, value) VALUES (?, ?)`).run('inactivity_timeout_minutes', '60');
+
   console.log('[Database] Seed complete: 3 clients, 7 codes postaux');
 }
 
 seedIfEmpty();
+
+// Ensure admin_config has defaults even if DB already existed before this migration
+const existingConfig = db.prepare('SELECT COUNT(*) as cnt FROM admin_config').get() as any;
+if (existingConfig.cnt === 0) {
+  db.prepare(`INSERT OR IGNORE INTO admin_config (key, value) VALUES (?, ?)`).run('inactivity_timeout_minutes', '60');
+}
 
 // ============================================
 // QUERY FUNCTIONS
@@ -402,6 +430,63 @@ export function updateClientProfil(identifiant: string, profil: any) {
 
 export function getCpVille(cpPrefix: string) {
   return db.prepare('SELECT id, code_postal as codePostal, ville FROM cp_ville WHERE code_postal LIKE ?').all(`${cpPrefix}%`);
+}
+
+// ============================================
+// ADMIN CONFIG
+// ============================================
+export function getAdminConfig(key: string): string | undefined {
+  const row = db.prepare('SELECT value FROM admin_config WHERE key = ?').get(key) as { value: string } | undefined;
+  return row?.value;
+}
+
+export function setAdminConfig(key: string, value: string) {
+  db.prepare('INSERT OR REPLACE INTO admin_config (key, value) VALUES (?, ?)').run(key, value);
+}
+
+export function getAllAdminConfig(): Record<string, string> {
+  const rows = db.prepare('SELECT key, value FROM admin_config').all() as { key: string; value: string }[];
+  const config: Record<string, string> = {};
+  for (const row of rows) config[row.key] = row.value;
+  return config;
+}
+
+// ============================================
+// FCM TOKENS
+// ============================================
+export function saveFcmToken(identifiant: string, token: string, deviceInfo?: string) {
+  db.prepare(`INSERT OR REPLACE INTO fcm_tokens (identifiant, token, device_info, created_at) VALUES (?, ?, ?, datetime('now'))`).run(identifiant, token, deviceInfo || null);
+}
+
+export function getFcmTokens(identifiant?: string) {
+  if (identifiant) {
+    return db.prepare('SELECT * FROM fcm_tokens WHERE identifiant = ?').all(identifiant);
+  }
+  return db.prepare('SELECT * FROM fcm_tokens').all();
+}
+
+export function deleteFcmToken(token: string) {
+  db.prepare('DELETE FROM fcm_tokens WHERE token = ?').run(token);
+}
+
+// ============================================
+// CONNECTED CLIENTS
+// ============================================
+export function setConnectedClient(identifiant: string, deviceInfo?: string) {
+  db.prepare(`INSERT OR REPLACE INTO connected_clients (identifiant, last_login, device_info) VALUES (?, datetime('now'), ?)`).run(identifiant, deviceInfo || null);
+}
+
+export function removeConnectedClient(identifiant: string) {
+  db.prepare('DELETE FROM connected_clients WHERE identifiant = ?').run(identifiant);
+}
+
+export function getConnectedClients() {
+  return db.prepare(`
+    SELECT cc.identifiant, cc.last_login, cc.device_info,
+           c.profil
+    FROM connected_clients cc
+    LEFT JOIN clients c ON cc.identifiant = c.identifiant
+  `).all() as { identifiant: string; last_login: string; device_info: string | null; profil: string }[];
 }
 
 export { db };
