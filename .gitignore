@@ -56,5 +56,14 @@ figma_export/
 
 # Zip files
 *.zip
-telegram_claude.py 
-.claude_prompt.txt 
+telegram_claude.py
+.claude_prompt.txt
+
+# ngrok binary
+ngrok_bin/
+
+# Node modules
+node_modules/
+
+# BFF dist
+bff/dist/

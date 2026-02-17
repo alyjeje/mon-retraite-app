@@ -418,6 +418,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             onPressed: () {
               Navigator.pop(context);
+              context.read<AppProvider>().logout();
             },
             child: const Text('Déconnecter'),
           ),

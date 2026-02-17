@@ -1,0 +1,4971 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "IGC Retraite",
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "/API_RETRAITE_V2"
+    }
+  ],
+  "paths": {
+    "/api/Auth/connexion": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Connexion utilisateur",
+        "description": " Permet à un utilisateur de se connecter à l'application en utilisant son identifiant (Particip ou Identifiant personnalisé) et son mot de passe.\r\n \r\n En cas de connexion succès (StatutConnexion = 1), retourne un token JWT Bearer pour les requêtes authentifiées suivantes.\r\n \r\n **Statuts de connexion possibles :**\r\n - `Connexion_OK` (1) : Connexion réussie, token généré\r\n - `Compte_Inexistant` (2) : L'identifiant fourni (Particip) est incorrect ou aucun compte n'est lié à cet identifiant\r\n - `Compte_Inactif` (3) :  Le compte associé est inactif (désactivé).\r\n - `Compte_Ferme` (4) :  Le compte a été fermé.\r\n - `MotDePasse_Indefini` (5) :  Le mot de passe pour ce compte n'est pas défini (null) dans la base de données.\r\n - `MotDePasse_Invalide` (6) :   Le mot de passe fourni est incorrect (avec détails sur les tentatives restantes)\r\n - `Compte_Verrouille` (8) :   Le compte est verrouillé en raison de trois tentatives de connexion échouées.\r\n - `SpecificLock` (9) :   Le compte est temporairement indisponible (statutId du compte = 3).\r\n - `Expire` (10) :   Le mot de passe est expiré et doit être renouvelé.\r\n - `No_Account` (11) :   aucune affiliation active n'est liée à cet identifiant.\r\n \r\n **Remarque :**\r\n En cas de retour avec un statut lié au mot de passe (MotDePasse_Invalide), la réponse inclut également une propriété supplémentaire appelée Details (int) indiquant le nombre de tentatives restantes avant que le compte ne soit verrouillé. \r\n \r\n **Messages d’erreur actuellement dans IGC pour chaque statut :**\r\n - Compte_Inexistant : « Identifiant incorrect. Cliquez sur le lien \"Identifiant/numéro client oublié\" pour le\trecevoir par email.»\r\n - Compte_Inactif : « Votre compte a été désactivé. Veuillez contacter votre gestionnaire.»\r\n - Compte_Ferme : « Votre compte est fermé. Veuillez contacter votre gestionnaire.»\r\n - MotDePasse_Indefini : « Pour des raisons de sécurité, nous vous invitons à redéfinir votre mot depasse.» (PoPup)\r\n - MotDePasse_Invalide : « Code d'accès incorrect. Il vous reste 2 essai(s) avant verrouillage du compte.Cliquez sur le lien \"(Re)définir votre code d'accès\" pour en regénérer un nouveau. » (Details = 2)\r\n - SpecificLock : « Votre compte est momentanément indisponible, veuillez nous excuser pour la gêne occasionnée.»\r\n - Expire: « Mot de passe expiré. Veuillez renseigner un nouveau mot de passe. »\r\n - Compte_Verrouille : « Votre espace personnel est bloqué suite à 3 mots de passe erronés. Veuillezcontacter votre gestionnaire.\r\n - No_Account : « Vous ne disposez d’aucune affiliation valide pour utiliser votre espace personnel.»\r\n \r\n**Exemple de réponse (Connexion_OK) :**\r\n   \r\n \r\n\t\t{\r\n         \"statutConnexion\": \"1\",\r\n         \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\r\n         \"token_type\": \"Bearer\",\r\n         \"expires_in\": 3600\r\n\t\t}\r\n\t\t\t\r\n \r\n**Exemple de réponse (MotDePasse_Invalide) :**\r\n   \r\n \r\n\t\t{\r\n\t\t   \"statutConnexion\": 6,\r\n\t\t   \"details\": \"2\"\r\n\t\t}\r\n\t\t\r\n \r\n**Exemple de réponse pour les autres status :**\r\n  \r\n \r\n\t   {\r\n       \"statutConnexion\": 8\r\n     }",
+        "requestBody": {
+          "description": "Les informations de connexion (identifiant et mot de passe)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnexionRM"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnexionRM"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnexionRM"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Requête traitée avec succès. Retourne un objet ConnexionDTO avec :\r\n- Connexion réussie : token JWT inclus\r\n- Mot de passe invalide : nombre de tentatives restantes dans le champ \"details\"\r\n- Aucune adhésion : statut \"No_Account\"",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnexionDTO"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnexionDTO"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnexionDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Requête invalide. Causes possibles :\r\n- Impossible de valider l'utilisateur\r\n- Identifiant utilisateur manquant\r\n- Erreur lors de la récupération des informations d'adhésion",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur interne du serveur - Une erreur inattendue s'est produite",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non autorisé - Authentification échouée"
+          }
+        }
+      }
+    },
+    "/api/Contrat/{scont}/{codeCb}": {
+      "get": {
+        "tags": [
+          "Contrat"
+        ],
+        "summary": "Récupère les informations détaillées d'un contrat.",
+        "parameters": [
+          {
+            "name": "scont",
+            "in": "path",
+            "description": "contrat",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            },
+            "example": 9948133000
+          },
+          {
+            "name": "codeCb",
+            "in": "path",
+            "description": "Code de la catégorie bénéficiaire.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 98
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContratDetailsDTO"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContratDetailsDTO"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContratDetailsDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/getOptionsFinancieres/{scont}": {
+      "get": {
+        "tags": [
+          "Retraite"
+        ],
+        "parameters": [
+          {
+            "name": "scont",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OptionFinanciereDTO"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OptionFinanciereDTO"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OptionFinanciereDTO"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/getEvenementCollectif/{scont}": {
+      "get": {
+        "tags": [
+          "Retraite"
+        ],
+        "parameters": [
+          {
+            "name": "scont",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EvenementResponseDTO"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EvenementResponseDTO"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EvenementResponseDTO"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/getDetailsEvenement/{idMouvement}": {
+      "get": {
+        "tags": [
+          "Retraite"
+        ],
+        "parameters": [
+          {
+            "name": "idMouvement",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailsOperationDTO"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailsOperationDTO"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailsOperationDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/getEpargneUc/{scont}": {
+      "get": {
+        "tags": [
+          "Retraite"
+        ],
+        "parameters": [
+          {
+            "name": "scont",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpargneDTO"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpargneDTO"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpargneDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/getModeGestion/{scont}": {
+      "get": {
+        "tags": [
+          "Retraite"
+        ],
+        "parameters": [
+          {
+            "name": "scont",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ModeGestionResponseDTO"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ModeGestionResponseDTO"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ModeGestionResponseDTO"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/getVersement/{contrat}": {
+      "get": {
+        "tags": [
+          "Retraite"
+        ],
+        "parameters": [
+          {
+            "name": "contrat",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersementResponseDTO"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersementResponseDTO"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersementResponseDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/get_arbitrage/{contrat}": {
+      "get": {
+        "tags": [
+          "Retraite"
+        ],
+        "parameters": [
+          {
+            "name": "contrat",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idDemande",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArbitrageResponseDTO"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArbitrageResponseDTO"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArbitrageResponseDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/modificationOptionFinanciere/{scont}": {
+      "post": {
+        "tags": [
+          "Retraite"
+        ],
+        "parameters": [
+          {
+            "name": "scont",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifierOptionFinanciereRM"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifierOptionFinanciereRM"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifierOptionFinanciereRM"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModificationOptionDesenResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModificationOptionDesenResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModificationOptionDesenResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/ModificationAgeRetraite": {
+      "post": {
+        "tags": [
+          "Retraite"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModificationAgeRetraiteRM"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModificationAgeRetraiteRM"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModificationAgeRetraiteRM"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModificationAgeRetraiteResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModificationAgeRetraiteResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModificationAgeRetraiteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/set_arbitrage": {
+      "post": {
+        "tags": [
+          "Retraite"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetArbitrageDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetArbitrageDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetArbitrageDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetArbitrageResponseDTO"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetArbitrageResponseDTO"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetArbitrageResponseDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/setVersement": {
+      "post": {
+        "tags": [
+          "Retraite"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetVifDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetVifDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetVifDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetVersementResponseDTO"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetVersementResponseDTO"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetVersementResponseDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/modification_versement_programme": {
+      "post": {
+        "tags": [
+          "Retraite"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemandeModifVPRM"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemandeModifVPRM"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemandeModifVPRM"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/representation_prelevement": {
+      "post": {
+        "tags": [
+          "Retraite"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemandeRepresentationRM"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemandeRepresentationRM"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemandeRepresentationRM"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/delete-versement-mensuel/{scont}": {
+      "post": {
+        "tags": [
+          "Retraite"
+        ],
+        "parameters": [
+          {
+            "name": "scont",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Retraite/check_eligible/{contrat}": {
+      "get": {
+        "tags": [
+          "Retraite"
+        ],
+        "summary": "Vérifie l’éligibilité d’un contrat aux différentes opérations : \r\nversement, arbitrage et rente.",
+        "parameters": [
+          {
+            "name": "contrat",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibiliteInfoDTO"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibiliteInfoDTO"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibiliteInfoDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/ChechEligibilites_Retraite": {
+      "get": {
+        "tags": [
+          "Retraite"
+        ],
+        "summary": "Récupère la liste des contrats retraite éligibles pour l’assuré connecté.",
+        "description": "Cette méthode :\r\n- Vérifie l’éligibilité de chaque contrat.\r\n- Retourne les indicateurs d’éligibilité (versement, arvitrage et rente) pour chaque contrat.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EligibiliteContratResponseDTO"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EligibiliteContratResponseDTO"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EligibiliteContratResponseDTO"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Retraite/EligibleModificationAgeRetraite/{scont}/{codeCompartiment}": {
+      "get": {
+        "tags": [
+          "Retraite"
+        ],
+        "parameters": [
+          {
+            "name": "scont",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "codeCompartiment",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibleAgeRetraiteDTO"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibleAgeRetraiteDTO"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibleAgeRetraiteDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Salarie": {
+      "get": {
+        "tags": [
+          "Salarie"
+        ],
+        "summary": "Récupère les informations du profil du salarié connecté.",
+        "description": "Cette API permet de retourner les données complètes du salarié, incluant :\r\n- Les informations personnelles et du compte\r\n- Les adhésions et contrats associés\r\n- Les coordonnées bancaires (IBAN)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InfosSalarieDTO"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InfosSalarieDTO"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InfosSalarieDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Salarie/modification/mail": {
+      "post": {
+        "tags": [
+          "Salarie"
+        ],
+        "summary": "Modification de l’email du salarié (mise à jour en base de données + appel à ITAC)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifEmailRM"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifEmailRM"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifEmailRM"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Salarie/modification/adresse": {
+      "post": {
+        "tags": [
+          "Salarie"
+        ],
+        "summary": "Modification de l’adresse du salarié (appel à ITAC)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifAdresseRM"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifAdresseRM"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifAdresseRM"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Salarie/modification/telephone": {
+      "post": {
+        "tags": [
+          "Salarie"
+        ],
+        "summary": "Modification du numéro de téléphone du salarié (appel à ITAC)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifPhoneRM"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifPhoneRM"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifPhoneRM"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Tools/cpville/{codePostal}": {
+      "get": {
+        "tags": [
+          "Tools"
+        ],
+        "summary": "Récupère la liste des villes associées à un code postal.",
+        "description": "Cette API permet de retourner les villes correspondant au code postal fourni.\r\nElle est principalement utilisée pour l’auto-complétion des adresses.",
+        "parameters": [
+          {
+            "name": "codePostal",
+            "in": "path",
+            "description": "Code postal à rechercher.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des villes récupérée avec succès.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CpVilleDTO"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CpVilleDTO"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CpVilleDTO"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Code postal invalide ou aucune donnée trouvée.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur technique interne."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdhesionCbDTO": {
+        "type": "object",
+        "properties": {
+          "codeCb": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dateDebut": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateFin": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "statut": {
+            "$ref": "#/components/schemas/StatutAdhesion"
+          },
+          "motifFin": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdhesionInfosDto": {
+        "type": "object",
+        "properties": {
+          "numeroAffiliation": {
+            "type": "number",
+            "format": "double"
+          },
+          "dateDebut": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateFin": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dateEntree": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateSortie": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dateLiquidation": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "isLiquide": {
+            "type": "boolean"
+          },
+          "isAffiliationResilie": {
+            "type": "boolean"
+          },
+          "motifResiliation": {
+            "type": "string",
+            "nullable": true
+          },
+          "adhesionCbs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdhesionCbDTO"
+            },
+            "nullable": true
+          },
+          "regimeObligatoire": {
+            "$ref": "#/components/schemas/RegimeObligatoireDTO"
+          },
+          "contrat": {
+            "$ref": "#/components/schemas/ContratInfosDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdressePostaleDto": {
+        "type": "object",
+        "properties": {
+          "adresse": {
+            "type": "string",
+            "nullable": true
+          },
+          "complementAdresse": {
+            "type": "string",
+            "nullable": true
+          },
+          "lieuDit": {
+            "type": "string",
+            "nullable": true
+          },
+          "codePostal": {
+            "type": "string",
+            "nullable": true
+          },
+          "ville": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArbitrageInfoDTO": {
+        "type": "object",
+        "properties": {
+          "numCuba": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroContrat": {
+            "type": "string",
+            "nullable": true
+          },
+          "ageRetraite": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offre": {
+            "$ref": "#/components/schemas/Offre"
+          },
+          "isImpose": {
+            "type": "boolean"
+          },
+          "isEntrepriseCotisante": {
+            "type": "boolean"
+          },
+          "isAffiliePresent": {
+            "type": "boolean"
+          },
+          "isNouvelleCG": {
+            "type": "boolean"
+          },
+          "socles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SocleInfoDTO"
+            },
+            "nullable": true
+          },
+          "eligibleArbitrage": {
+            "type": "boolean"
+          },
+          "isAffiliationLiquidee": {
+            "type": "boolean"
+          },
+          "isReleveBloque": {
+            "type": "boolean"
+          },
+          "isContratERE": {
+            "type": "boolean"
+          },
+          "optionFinanciere": {
+            "$ref": "#/components/schemas/OptionFinanciereResponseDTO"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArbitrageResponseDTO": {
+        "type": "object",
+        "properties": {
+          "arbitrageInfo": {
+            "$ref": "#/components/schemas/ArbitrageInfoDTO"
+          },
+          "demandeArbitrage": {
+            "$ref": "#/components/schemas/DemandeArbitrageRM"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ConnexionDTO": {
+        "type": "object",
+        "properties": {
+          "statutConnexion": {
+            "$ref": "#/components/schemas/StatutConnexion"
+          },
+          "access_token": {
+            "type": "string",
+            "description": "Token JWT Bearer pour l'authentification (uniquement si connexion réussie)",
+            "nullable": true,
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "token_type": {
+            "type": "string",
+            "description": "Type de token (toujours \"Bearer\" si fourni)",
+            "nullable": true,
+            "example": "Bearer"
+          },
+          "expires_in": {
+            "type": "number",
+            "description": "Durée de validité du token en secondes",
+            "format": "double",
+            "nullable": true,
+            "example": 3600
+          },
+          "details": {
+            "type": "string",
+            "description": "Informations supplémentaires selon le statut.\r\nPour MotDePasse_Invalide : nombre de tentatives restantes",
+            "nullable": true,
+            "example": "2"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Modèle de réponse pour la connexion utilisateur"
+      },
+      "ConnexionRM": {
+        "required": [
+          "identifiant",
+          "motDePasse"
+        ],
+        "type": "object",
+        "properties": {
+          "identifiant": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Identifiant de l'utilisateur (Particip ou Identifiant personnalisé)",
+            "example": "1611830"
+          },
+          "motDePasse": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Mot de passe de l'utilisateur",
+            "example": "dev"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Modèle de requête pour la connexion utilisateur"
+      },
+      "ContratCbInfosDTO": {
+        "type": "object",
+        "properties": {
+          "codeCb": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "libelleCb": {
+            "type": "string",
+            "nullable": true
+          },
+          "dateEffet": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateFinEffet": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "statut": {
+            "type": "string",
+            "nullable": true
+          },
+          "formule": {
+            "type": "string",
+            "nullable": true
+          },
+          "libFormule": {
+            "type": "string",
+            "nullable": true
+          },
+          "dateStatut": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContratDetailsDTO": {
+        "type": "object",
+        "properties": {
+          "produit": {
+            "type": "string",
+            "nullable": true
+          },
+          "scont": {
+            "type": "number",
+            "format": "double"
+          },
+          "numeroContrat": {
+            "type": "string",
+            "nullable": true
+          },
+          "siret": {
+            "type": "number",
+            "format": "double"
+          },
+          "dateEffet": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "codeCb": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "employeur": {
+            "type": "string",
+            "nullable": true
+          },
+          "dateFin": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "statut": {
+            "type": "string",
+            "nullable": true
+          },
+          "categorieBeneficiaire": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContratInfosDto": {
+        "type": "object",
+        "properties": {
+          "marque": {
+            "type": "string",
+            "nullable": true
+          },
+          "entiteApp": {
+            "type": "string",
+            "nullable": true
+          },
+          "scont": {
+            "type": "number",
+            "format": "double"
+          },
+          "numContrat": {
+            "type": "number",
+            "format": "double"
+          },
+          "numSousContrat": {
+            "type": "number",
+            "format": "double"
+          },
+          "siret": {
+            "type": "number",
+            "format": "double"
+          },
+          "regime": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "typeContratLibelle": {
+            "type": "string",
+            "nullable": true
+          },
+          "sptf": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelleProduit": {
+            "type": "string",
+            "nullable": true
+          },
+          "referenceContrat": {
+            "type": "string",
+            "nullable": true
+          },
+          "dateEffet": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "contratCbs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContratCbInfosDTO"
+            },
+            "nullable": true
+          },
+          "codeICX": {
+            "type": "string",
+            "nullable": true
+          },
+          "idStatut": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "dateStatut": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CpVilleDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "codePostal": {
+            "type": "string",
+            "nullable": true
+          },
+          "ville": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DemandeArbitrageRM": {
+        "type": "object",
+        "properties": {
+          "particip": {
+            "type": "number",
+            "format": "double"
+          },
+          "emetteur": {
+            "$ref": "#/components/schemas/Emetteur"
+          },
+          "idDebranchement": {
+            "type": "string",
+            "nullable": true
+          },
+          "scont": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cb": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "entApp": {
+            "type": "string",
+            "nullable": true
+          },
+          "idDemande": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "contextImpose": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "socle": {
+            "type": "string",
+            "nullable": true
+          },
+          "gestionSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "codeProfilSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelleProfilSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "gestionCible": {
+            "type": "string",
+            "nullable": true
+          },
+          "codeProfilCible": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelleProfilCible": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasEA": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "hasEADeductible": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "hasEANonDeductible": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "hasVF": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "hasSameEAVF": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "ageRetraite": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "ageDebutDes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "ageFinDes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "offre": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "entCotisanteEtAffiliePresent": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "souscrireDL": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "dureeDL": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "sameEAVFSupport": {
+            "type": "string",
+            "nullable": true
+          },
+          "transmise": {
+            "type": "boolean"
+          },
+          "supports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DemandeArbitrageSupportRM"
+            },
+            "nullable": true
+          },
+          "etatOptionDL": {
+            "$ref": "#/components/schemas/EtatDL"
+          },
+          "dateDemande": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "isModificationAgeRetraite": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DemandeArbitrageSupportRM": {
+        "type": "object",
+        "properties": {
+          "idSupport": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "idDemArbitrage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "reinvestissement": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "desinvestissement": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "repartition": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "nouvelleRepartition": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "deductible": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DemandeModifVPRM": {
+        "required": [
+          "compartiment",
+          "indexation",
+          "montant",
+          "periodicite"
+        ],
+        "type": "object",
+        "properties": {
+          "emetteur": {
+            "$ref": "#/components/schemas/Emetteur"
+          },
+          "scont": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "periodicite": {
+            "$ref": "#/components/schemas/Periodicite"
+          },
+          "montant": {
+            "type": "number",
+            "format": "double"
+          },
+          "compartiment": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "indexation": {
+            "type": "boolean"
+          },
+          "idDebranchement": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DemandeRepresentationRM": {
+        "type": "object",
+        "properties": {
+          "emetteur": {
+            "$ref": "#/components/schemas/Emetteur"
+          },
+          "scont": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "echeancesRepresenter": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "echeancesAAnnuler": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "idDebranchement": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DetailsOperationDTO": {
+        "type": "object",
+        "properties": {
+          "typeEvenement": {
+            "type": "string",
+            "nullable": true
+          },
+          "sousTypeEvenement": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelleEvenement": {
+            "type": "string",
+            "nullable": true
+          },
+          "modeReglement": {
+            "type": "string",
+            "nullable": true
+          },
+          "motifAnnulation": {
+            "type": "string",
+            "nullable": true
+          },
+          "identifiantEvenementAnnule": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "dateEffet": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dateComptable": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dateValorisation": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dateFiscale": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dateReception": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dateEncaissement": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "debutPeriode": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "finPeriode": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dateInvestissement": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "montantBrut": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "montantNet": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "montantFrais": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "isMouvementPIP": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isArrete": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "cleTresorerie": {
+            "type": "string",
+            "nullable": true
+          },
+          "identifiantMouvement": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "identifiantContrat": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "referenceContrat": {
+            "type": "string",
+            "nullable": true
+          },
+          "isAnnulation": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "dateCreation": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "libelleCompartiment": {
+            "type": "string",
+            "nullable": true
+          },
+          "isTFAUnitaire": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "typeTransfert": {
+            "type": "string",
+            "nullable": true
+          },
+          "montantPrimes": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "assiettePL": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "assietteSociale": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "montantPSTheorique": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "acomptePSUtil": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "montantPSReel": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "montantPLReel": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "assiettePFONL": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "tauxPFONL": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "montantPFONLReel": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "mouvementParPlacement": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MovementParPlacementDTO"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EligibiliteContratResponseDTO": {
+        "type": "object",
+        "properties": {
+          "contratCb": {
+            "type": "string",
+            "nullable": true
+          },
+          "versementEligible": {
+            "type": "boolean"
+          },
+          "arbitrageEligible": {
+            "type": "boolean"
+          },
+          "renteEligible": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EligibiliteInfoDTO": {
+        "type": "object",
+        "properties": {
+          "versementEligible": {
+            "type": "boolean"
+          },
+          "arbitrageEligible": {
+            "type": "boolean"
+          },
+          "renteEligible": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EligibleAgeRetraiteDTO": {
+        "type": "object",
+        "properties": {
+          "isBlocked": {
+            "type": "boolean"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Emetteur": {
+        "enum": [
+          65,
+          67,
+          69,
+          71,
+          73,
+          78,
+          82,
+          84,
+          88,
+          90
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "EpargneDTO": {
+        "type": "object",
+        "properties": {
+          "tauxPMValue": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "montantPMValue": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "socles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SocleDTO"
+            },
+            "nullable": true
+          },
+          "montantEpargne": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EtatDL": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "EvenementResponseDTO": {
+        "type": "object",
+        "properties": {
+          "identifiantMouvement": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "libelleEvenement": {
+            "type": "string",
+            "nullable": true
+          },
+          "typeEvenement": {
+            "type": "string",
+            "nullable": true
+          },
+          "sousTypeEvenement": {
+            "type": "string",
+            "nullable": true
+          },
+          "modeReglement": {
+            "type": "string",
+            "nullable": true
+          },
+          "dateEncaissement": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dateValorisation": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "isAnnulation": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "typeAnnulation": {
+            "type": "string",
+            "nullable": true
+          },
+          "dateEffet": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "montantBrut": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "montantNet": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FamilleSupportDTO": {
+        "type": "object",
+        "properties": {
+          "libelleFR": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelleEN": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "GarantiePlacementDTO": {
+        "type": "object",
+        "properties": {
+          "codeGarantie": {
+            "type": "string",
+            "nullable": true
+          },
+          "montantGarantie": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "tauxFrais": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InfosProfilHorizon": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelle": {
+            "type": "string",
+            "nullable": true
+          },
+          "supportsRepartition": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportRepartitionDTO"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InfosSalarieDTO": {
+        "type": "object",
+        "properties": {
+          "salarieInfos": {
+            "$ref": "#/components/schemas/ProfilDto"
+          },
+          "adhesionsInfos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdhesionInfosDto"
+            },
+            "description": "Liste des adhésions du salarié avec leurs contrats associés.",
+            "nullable": true
+          },
+          "canModifInfos": {
+            "type": "boolean",
+            "description": "Indique si la modification des informations du salarié est autorisée."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Données complètes d'un salarié : profil, adhésions/contrats et droits de modification."
+      },
+      "Marque": {
+        "enum": [
+          65,
+          67,
+          71
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "ModeGestionResponseDTO": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "dateDebut": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dateFin": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "profil": {
+            "type": "string",
+            "nullable": true
+          },
+          "ageRetraite": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "dateRetraite": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ModifAdresseRM": {
+        "required": [
+          "newAdresse",
+          "newCodePostal",
+          "newVille"
+        ],
+        "type": "object",
+        "properties": {
+          "newAdresse": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string",
+            "description": "Adresse principale.",
+            "example": "12 rue de la Paix"
+          },
+          "newCompAdresse": {
+            "maxLength": 255,
+            "type": "string",
+            "description": "Complément d'adresse (optionnel).",
+            "nullable": true,
+            "example": "Bâtiment B, Appartement 302"
+          },
+          "newLieuDit": {
+            "maxLength": 255,
+            "type": "string",
+            "description": "Lieu-dit (optionnel).",
+            "nullable": true,
+            "example": "Les Jardins du Lac"
+          },
+          "newCodePostal": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Code postal.",
+            "example": "75001"
+          },
+          "newVille": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string",
+            "description": "Ville.",
+            "example": "Paris"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Modèle de requête pour la modification de l'adresse"
+      },
+      "ModifEmailRM": {
+        "required": [
+          "newMail"
+        ],
+        "type": "object",
+        "properties": {
+          "newMail": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Nouvelle adresse email de l'utilisateur.",
+            "example": "exemple@email.com"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Modèle de requête pour la modification de l'adresse email."
+      },
+      "ModifPhoneRM": {
+        "required": [
+          "newTelephone"
+        ],
+        "type": "object",
+        "properties": {
+          "newTelephone": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Nouveau numéro de téléphone de l'utilisateur.",
+            "example": "0612345678"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Modèle de requête pour la modification du numéro de téléphone."
+      },
+      "ModificationAgeRetraiteRM": {
+        "type": "object",
+        "properties": {
+          "scont": {
+            "type": "number",
+            "format": "double"
+          },
+          "cb": {
+            "type": "string",
+            "nullable": true
+          },
+          "ageRetraite": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "codeCompartiment": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ModificationAgeRetraiteResult": {
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "ModificationOptionDesenResult": {
+        "enum": [
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "ModifierOptionFinanciereRM": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ageRetraite": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "duree": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MovementParPlacementDTO": {
+        "type": "object",
+        "properties": {
+          "repartitionPlacements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RepartitionParPlacementDTO"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "NumeroTelephoneDTO": {
+        "type": "object",
+        "properties": {
+          "indicatifPays": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroTelephone": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Offre": {
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "OptionFinanciereDTO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelle": {
+            "type": "string",
+            "nullable": true
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "libelleStatut": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "dateDebut": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dateFin": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "duree": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "seuil_PlusValue": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "seuil_MoinsValue": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "periodicite": {
+            "$ref": "#/components/schemas/Periodicite"
+          },
+          "montantMensuel": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "nbMoisInvestissement": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "supportsSource": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "supportsCible": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OptionFinanciereResponseDTO": {
+        "type": "object",
+        "properties": {
+          "durees": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "dureeWS": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "dureeMaxDL": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dateDebut": {
+            "type": "string",
+            "nullable": true
+          },
+          "dateFin": {
+            "type": "string",
+            "nullable": true
+          },
+          "isDLActive": {
+            "type": "boolean"
+          },
+          "isEligible": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Periodicite": {
+        "enum": [
+          65,
+          72,
+          77,
+          78,
+          81,
+          83,
+          84,
+          85
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      },
+      "ProfilDto": {
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": "string",
+            "nullable": true
+          },
+          "prenom": {
+            "type": "string",
+            "nullable": true
+          },
+          "dateNaissance": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "adressePostale": {
+            "$ref": "#/components/schemas/AdressePostaleDto"
+          },
+          "numeroSS": {
+            "type": "string",
+            "nullable": true
+          },
+          "telephonePortable": {
+            "$ref": "#/components/schemas/NumeroTelephoneDTO"
+          },
+          "civilite": {
+            "type": "string",
+            "nullable": true
+          },
+          "idClient": {
+            "type": "string",
+            "nullable": true
+          },
+          "idPersonnalite": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegimeObligatoireDTO": {
+        "type": "object",
+        "properties": {
+          "regime": {
+            "type": "string",
+            "nullable": true
+          },
+          "centre": {
+            "type": "string",
+            "nullable": true
+          },
+          "caisse": {
+            "type": "string",
+            "nullable": true
+          },
+          "blocageTeletransmission": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RepartitionParPlacementDTO": {
+        "type": "object",
+        "properties": {
+          "libellePlacement": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelleModeGestion": {
+            "type": "string",
+            "nullable": true
+          },
+          "codeIsin": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelleIsin": {
+            "type": "string",
+            "nullable": true
+          },
+          "tauxPlacement": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "tauxRepartition": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "tauxRepartitionFond": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "montantBrut": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "montantNet": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "montantFrais": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "tauxFrais": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "nbPart": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "dateCreation": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dateValeurUc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "valeurUc": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "garantiesPlacements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GarantiePlacementDTO"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetArbitrageDTO": {
+        "type": "object",
+        "properties": {
+          "particip": {
+            "type": "number",
+            "format": "double"
+          },
+          "contrat": {
+            "type": "string",
+            "nullable": true
+          },
+          "supportsDesinv": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SetArbitrageSupportDesinvDTO"
+            },
+            "nullable": true
+          },
+          "supportsReinv": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SetArbitrageSupportReinvDTO"
+            },
+            "nullable": true
+          },
+          "supportsRep": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SetArbitrageSupportRepartitionDTO"
+            },
+            "nullable": true
+          },
+          "supportsProfilHorizon": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SetArbitrageSupportRepartitionDTO"
+            },
+            "nullable": true
+          },
+          "demandeArbitrage": {
+            "$ref": "#/components/schemas/DemandeArbitrageRM"
+          },
+          "marque": {
+            "$ref": "#/components/schemas/Marque"
+          },
+          "emetteur": {
+            "$ref": "#/components/schemas/Emetteur"
+          },
+          "idDebranchement": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetArbitrageResponseDTO": {
+        "type": "object",
+        "properties": {
+          "demandeID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "codeRetourDL": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetArbitrageSupportDesinvDTO": {
+        "type": "object",
+        "properties": {
+          "codeSupport": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "percentDesinv": {
+            "type": "number",
+            "format": "double"
+          },
+          "deductible": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetArbitrageSupportReinvDTO": {
+        "type": "object",
+        "properties": {
+          "codeSupport": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "percentReinv": {
+            "type": "number",
+            "format": "double"
+          },
+          "deductible": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetArbitrageSupportRepartitionDTO": {
+        "type": "object",
+        "properties": {
+          "codeSupport": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "repartition": {
+            "type": "number",
+            "format": "double"
+          },
+          "percentNouvelleRepartition": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetVersementResponseDTO": {
+        "type": "object",
+        "properties": {
+          "dateProchainPrelevement": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetVifDTO": {
+        "type": "object",
+        "properties": {
+          "particip": {
+            "type": "number",
+            "format": "double"
+          },
+          "contrat": {
+            "type": "string",
+            "nullable": true
+          },
+          "emetteur": {
+            "$ref": "#/components/schemas/Emetteur"
+          },
+          "idDebranchement": {
+            "type": "string",
+            "nullable": true
+          },
+          "marque": {
+            "$ref": "#/components/schemas/Marque"
+          },
+          "referenceMandate": {
+            "type": "string",
+            "nullable": true
+          },
+          "isPonctuel": {
+            "type": "boolean"
+          },
+          "datePrelevement": {
+            "type": "string",
+            "nullable": true
+          },
+          "isSalariePayeur": {
+            "type": "boolean"
+          },
+          "isMemeRepartition": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "montant": {
+            "type": "number",
+            "format": "double"
+          },
+          "nomPayeur": {
+            "type": "string",
+            "nullable": true
+          },
+          "modeGestionCible": {
+            "type": "string",
+            "nullable": true
+          },
+          "codeProfilHorizon": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelleProfilHorizon": {
+            "type": "string",
+            "nullable": true
+          },
+          "deductible": {
+            "type": "boolean"
+          },
+          "codeOrigineFonds": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "codeProfilePilote": {
+            "type": "string",
+            "nullable": true
+          },
+          "supportsRep": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SetVifSupportRepartitionDTO"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetVifSupportRepartitionDTO": {
+        "type": "object",
+        "properties": {
+          "codeSupport": {
+            "type": "string",
+            "nullable": true
+          },
+          "repartition": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SocleDTO": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/TypeSocle"
+          },
+          "epargne": {
+            "type": "number",
+            "format": "double"
+          },
+          "supports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportEpargneDTO"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SocleInfoDTO": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/TypeSocle"
+          },
+          "isBloqueWS": {
+            "type": "boolean"
+          },
+          "delaiBlocage": {
+            "type": "string",
+            "nullable": true
+          },
+          "isLibreEligible": {
+            "type": "boolean"
+          },
+          "isHorizonEligible": {
+            "type": "boolean"
+          },
+          "isPiloteEligible": {
+            "type": "boolean"
+          },
+          "modeGestionActuel": {
+            "type": "string",
+            "nullable": true
+          },
+          "ageDebutDesensibiliation": {
+            "type": "number",
+            "format": "double"
+          },
+          "ageFinDesensibiliation": {
+            "type": "number",
+            "format": "double"
+          },
+          "epargne": {
+            "type": "number",
+            "format": "double"
+          },
+          "isCodeSupportUnique": {
+            "type": "boolean"
+          },
+          "isVFEligible": {
+            "type": "boolean"
+          },
+          "isVFForce": {
+            "type": "boolean"
+          },
+          "isEADeductibleEligble": {
+            "type": "boolean"
+          },
+          "isEANonDeductibleEligble": {
+            "type": "boolean"
+          },
+          "canOnlyModifMG": {
+            "type": "boolean"
+          },
+          "lissageEnCours": {
+            "type": "boolean"
+          },
+          "supports_CibleLibreArbitrage": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportRepartitionDTO"
+            },
+            "nullable": true
+          },
+          "supportsDesinvestissement": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportEpargneDTO"
+            },
+            "nullable": true
+          },
+          "supportsReinvestissement": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportArbitrageDTO"
+            },
+            "nullable": true
+          },
+          "supportsRepartition": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportRepartitionDTO"
+            },
+            "nullable": true
+          },
+          "profilsHorizon": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InfosProfilHorizon"
+            },
+            "nullable": true
+          },
+          "supportsPilote": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportRepartitionDTO"
+            },
+            "nullable": true
+          },
+          "currentProfilHorizon": {
+            "$ref": "#/components/schemas/InfosProfilHorizon"
+          },
+          "codeProfilePilote": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StatutAdhesion": {
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "StatutConnexion": {
+        "enum": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "SupportArbitrageDTO": {
+        "type": "object",
+        "properties": {
+          "idSupport": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "codeSupport": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelleSupportFR": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelleSupportEN": {
+            "type": "string",
+            "nullable": true
+          },
+          "codeISIN": {
+            "type": "string",
+            "nullable": true
+          },
+          "risque": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "vl": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "dateVL": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "perf_1Janvier": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "perf_1AnGlissant": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "perf_3AnsGlissant": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "perf_5AnsGlissant": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "lienDICI": {
+            "type": "string",
+            "nullable": true
+          },
+          "idFamille": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "familleSupport": {
+            "$ref": "#/components/schemas/FamilleSupportDTO"
+          },
+          "isPacte": {
+            "type": "boolean"
+          },
+          "repartition": {
+            "type": "number",
+            "format": "double"
+          },
+          "lissageEnCours": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "deductible": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportEpargneDTO": {
+        "type": "object",
+        "properties": {
+          "idSupport": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "codeSupport": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelleSupportFR": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelleSupportEN": {
+            "type": "string",
+            "nullable": true
+          },
+          "codeISIN": {
+            "type": "string",
+            "nullable": true
+          },
+          "risque": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "vl": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "dateVL": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "perf_1Janvier": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "perf_1AnGlissant": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "perf_3AnsGlissant": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "perf_5AnsGlissant": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "lienDICI": {
+            "type": "string",
+            "nullable": true
+          },
+          "idFamille": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "familleSupport": {
+            "$ref": "#/components/schemas/FamilleSupportDTO"
+          },
+          "isPacte": {
+            "type": "boolean"
+          },
+          "repartition": {
+            "type": "number",
+            "format": "double"
+          },
+          "lissageEnCours": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "dateValeurUC": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nbUC": {
+            "type": "number",
+            "format": "double"
+          },
+          "valeurUC": {
+            "type": "number",
+            "format": "double"
+          },
+          "montantEpargne": {
+            "type": "number",
+            "format": "double"
+          },
+          "typeSocle": {
+            "$ref": "#/components/schemas/TypeSocle"
+          },
+          "deductible": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportRepartitionDTO": {
+        "type": "object",
+        "properties": {
+          "idSupport": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "codeSupport": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelleSupportFR": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelleSupportEN": {
+            "type": "string",
+            "nullable": true
+          },
+          "codeISIN": {
+            "type": "string",
+            "nullable": true
+          },
+          "risque": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "vl": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "dateVL": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "perf_1Janvier": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "perf_1AnGlissant": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "perf_3AnsGlissant": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "perf_5AnsGlissant": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "lienDICI": {
+            "type": "string",
+            "nullable": true
+          },
+          "idFamille": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "familleSupport": {
+            "$ref": "#/components/schemas/FamilleSupportDTO"
+          },
+          "isPacte": {
+            "type": "boolean"
+          },
+          "repartition": {
+            "type": "number",
+            "format": "double"
+          },
+          "lissageEnCours": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TypeContratRetraiteUC": {
+        "enum": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "TypeSocle": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "VersementInfoDTO": {
+        "type": "object",
+        "properties": {
+          "typeContrat": {
+            "$ref": "#/components/schemas/TypeContratRetraiteUC"
+          },
+          "versementProgrammePrealable": {
+            "type": "boolean"
+          },
+          "versementPonctuelPrealable": {
+            "type": "boolean"
+          },
+          "versementProgrammeEnCours": {
+            "type": "boolean"
+          },
+          "montantVersementProgramme": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "periodiciteVersementProgramme": {
+            "$ref": "#/components/schemas/Periodicite"
+          },
+          "prochainPrelevementVersementProgramme": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "montantVersementMax": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "montantVersementMaxDNCA": {
+            "type": "number",
+            "format": "double",
+            "readOnly": true
+          },
+          "rum": {
+            "type": "string",
+            "nullable": true
+          },
+          "iban": {
+            "type": "string",
+            "nullable": true
+          },
+          "bic": {
+            "type": "string",
+            "nullable": true
+          },
+          "dateSignatureMandat": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "supportsDerniereRepartition": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportRepartitionDTO"
+            },
+            "nullable": true
+          },
+          "versementPrealable": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "modeGestion": {
+            "type": "string",
+            "nullable": true
+          },
+          "codeProfil": {
+            "type": "string",
+            "nullable": true
+          },
+          "libelleProfil": {
+            "type": "string",
+            "nullable": true
+          },
+          "supportsRepartition": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportRepartitionDTO"
+            },
+            "nullable": true
+          },
+          "profilsHorizon": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InfosProfilHorizon"
+            },
+            "nullable": true
+          },
+          "currentProfilHorizon": {
+            "$ref": "#/components/schemas/InfosProfilHorizon"
+          },
+          "typeSocle": {
+            "$ref": "#/components/schemas/TypeSocle"
+          },
+          "isSelectModeGestionEligible": {
+            "type": "boolean"
+          },
+          "isLibreEligible": {
+            "type": "boolean"
+          },
+          "isHorizonEligible": {
+            "type": "boolean"
+          },
+          "isPiloteEligible": {
+            "type": "boolean"
+          },
+          "codeProfilePilote": {
+            "type": "string",
+            "nullable": true
+          },
+          "isAncienneOffreWithFirstVF": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "VersementResponseDTO": {
+        "type": "object",
+        "properties": {
+          "versementInfo": {
+            "$ref": "#/components/schemas/VersementInfoDTO"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Please enter a valid token",
+        "scheme": "Bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": [ ]
+    }
+  ]
+}

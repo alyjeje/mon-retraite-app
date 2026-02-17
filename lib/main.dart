@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/app_provider.dart';
 import 'screens/main_shell.dart';
+import 'screens/login/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,8 +45,10 @@ class MonRetraiteApp extends StatelessWidget {
             darkTheme: AppTheme.darkTheme,
             themeMode: provider.themeMode,
 
-            // Écran principal
-            home: const MainShell(),
+            // Auth gate: login si pas connecte, app si connecte
+            home: provider.isAuthenticated
+                ? const MainShell()
+                : const LoginScreen(),
           );
         },
       ),
