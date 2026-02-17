@@ -1,12 +1,13 @@
 /**
  * Mock Server - Simule l'API IGC Retraite (Groupama)
  * Multi-clients: les donnees retournees dependent du token JWT (particip).
+ * Donnees stockees en SQLite (pas de restart necessaire pour les changements).
  */
 import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
-import { clientsDb, getClient, getClientByScont, mockCpVille } from './data';
+import { getClient, getClientByScont, getAllClients, updateClientProfil, getCpVille } from './database';
 
 const app = express();
 app.use(cors());
@@ -63,16 +64,13 @@ app.post(`${BASE}/api/Auth/connexion`, (req, res) => {
   const client = getClient(identifiant);
 
   if (!client) {
-    // Compte inexistant
     return res.json({ statutConnexion: 2 });
   }
 
   if (motDePasse !== client.motDePasse) {
-    // Mauvais mot de passe
     return res.json({ statutConnexion: 6, details: '2' });
   }
 
-  // Connexion OK
   const token = jwt.sign(
     { particip: parseInt(identifiant), nom: client.profil.nom, prenom: client.profil.prenom },
     JWT_SECRET,
@@ -106,7 +104,7 @@ app.get(`${BASE}/api/Salarie/infosSalarie`, (req, res) => {
 app.post(`${BASE}/api/Salarie/modifAdresse`, (req, res) => {
   const particip = getParticipFromToken(req);
   const client = particip ? getClient(particip) : null;
-  if (!client) return res.status(401).json({ message: 'Non autorise' });
+  if (!client || !particip) return res.status(401).json({ message: 'Non autorise' });
 
   const { newAdresse, newCodePostal, newVille } = req.body;
   if (!newAdresse || !newCodePostal || !newVille) {
@@ -115,28 +113,31 @@ app.post(`${BASE}/api/Salarie/modifAdresse`, (req, res) => {
   client.profil.adressePostale.adresse = newAdresse;
   client.profil.adressePostale.codePostal = newCodePostal;
   client.profil.adressePostale.ville = newVille;
+  updateClientProfil(particip, client.profil);
   res.json({ message: 'Adresse modifiee avec succes' });
 });
 
 app.post(`${BASE}/api/Salarie/modifEmail`, (req, res) => {
   const particip = getParticipFromToken(req);
   const client = particip ? getClient(particip) : null;
-  if (!client) return res.status(401).json({ message: 'Non autorise' });
+  if (!client || !particip) return res.status(401).json({ message: 'Non autorise' });
 
   const { newMail } = req.body;
   if (!newMail) return res.status(400).json({ message: 'Email requis' });
   client.profil.email = newMail;
+  updateClientProfil(particip, client.profil);
   res.json({ message: 'Email modifie avec succes' });
 });
 
 app.post(`${BASE}/api/Salarie/modifPhone`, (req, res) => {
   const particip = getParticipFromToken(req);
   const client = particip ? getClient(particip) : null;
-  if (!client) return res.status(401).json({ message: 'Non autorise' });
+  if (!client || !particip) return res.status(401).json({ message: 'Non autorise' });
 
   const { newTelephone } = req.body;
   if (!newTelephone) return res.status(400).json({ message: 'Telephone requis' });
   client.profil.telephonePortable.numeroTelephone = newTelephone;
+  updateClientProfil(particip, client.profil);
   res.json({ message: 'Telephone modifie avec succes' });
 });
 
@@ -174,9 +175,10 @@ app.get(`${BASE}/api/Retraite/getEvenementCollectif/:scont`, (req, res) => {
 // ============================================
 app.get(`${BASE}/api/Retraite/getDetailsEvenement/:idMouvement`, (req, res) => {
   const id = parseInt(req.params.idMouvement);
-  for (const client of Object.values(clientsDb)) {
+  const allClients = getAllClients();
+  for (const client of allClients) {
     for (const events of Object.values(client.evenements)) {
-      const event = events.find((e: any) => e.identifiantMouvement === id);
+      const event = (events as any[]).find((e: any) => e.identifiantMouvement === id);
       if (event) {
         return res.json({
           ...event,
@@ -293,7 +295,7 @@ app.post(`${BASE}/api/Retraite/delete-versement-mensuel/:scont`, (_req, res) => 
 // UTILS - Code postal
 // ============================================
 app.get(`${BASE}/api/Utils/getCpVille/:cp`, (req, res) => {
-  const filtered = mockCpVille.filter(c => c.codePostal.startsWith(req.params.cp));
+  const filtered = getCpVille(req.params.cp);
   res.json(filtered);
 });
 
@@ -301,21 +303,24 @@ app.get(`${BASE}/api/Utils/getCpVille/:cp`, (req, res) => {
 // Health check
 // ============================================
 app.get(`${BASE}/health`, (_req, res) => {
-  const clients = Object.values(clientsDb).map(c => ({
+  const allClients = getAllClients();
+  const clients = allClients.map(c => ({
     identifiant: c.identifiant,
     nom: `${c.profil.prenom} ${c.profil.nom}`,
     contrats: Object.keys(c.contratDetails).length,
   }));
-  res.json({ status: 'ok', service: 'IGC Retraite Mock Server', version: 'v2', clients });
+  res.json({ status: 'ok', service: 'IGC Retraite Mock Server', version: 'v3-sqlite', clients });
 });
 
 // ============================================
 // START
 // ============================================
 app.listen(config.mock.port, () => {
+  const allClients = getAllClients();
   console.log(`[Mock Server] API IGC Retraite simulee sur http://localhost:${config.mock.port}${BASE}`);
-  console.log(`[Mock Server] ${Object.keys(clientsDb).length} clients de test:`);
-  for (const client of Object.values(clientsDb)) {
+  console.log(`[Mock Server] SQLite backend - modifications persistees sans redemarrage`);
+  console.log(`[Mock Server] ${allClients.length} clients de test:`);
+  for (const client of allClients) {
     const nbContrats = Object.keys(client.contratDetails).length;
     const epargne = Object.values(client.epargneUc).reduce((sum: number, e: any) => sum + e.montantEpargne, 0);
     console.log(`  - ${client.identifiant} / ${client.motDePasse} : ${client.profil.prenom} ${client.profil.nom} (${nbContrats} contrats, ${epargne.toLocaleString('fr-FR')}€)`);

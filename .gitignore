@@ -67,3 +67,8 @@ node_modules/
 
 # BFF dist
 bff/dist/
+
+# SQLite database (mock server)
+bff/mock_data.db
+bff/mock_data.db-wal
+bff/mock_data.db-shm

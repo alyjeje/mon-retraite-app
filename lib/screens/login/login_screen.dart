@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme.dart';
 import '../../providers/app_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -13,6 +13,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _identifiantController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _identifiantFocus = FocusNode();
+  final _passwordFocus = FocusNode();
   bool _obscurePassword = true;
   bool _isSubmitting = false;
 
@@ -20,6 +22,8 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _identifiantController.dispose();
     _passwordController.dispose();
+    _identifiantFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
@@ -53,169 +57,242 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _fillTestAccount(String id) {
+    _identifiantController.text = id;
+    _passwordController.text = 'dev';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor:
+          isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo / Titre
+                const SizedBox(height: AppSpacing.xxl),
+
+                // Logo
                 Container(
-                  width: 80,
-                  height: 80,
+                  width: 72,
+                  height: 72,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                    boxShadow: AppColors.shadowMd,
                   ),
                   child: const Icon(
                     Icons.savings_outlined,
-                    size: 44,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Mon Epargne Retraite',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
+                    size: 36,
                     color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.xl),
+
+                // Title
+                Text(
+                  'Mon Epargne Retraite',
+                  style: AppTypography.displaySmall.copyWith(
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimaryLight,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   'Connectez-vous a votre espace',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.white.withValues(alpha: 0.8),
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
                   ),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: AppSpacing.xxxl),
 
-                // Champ identifiant
-                TextField(
-                  controller: _identifiantController,
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Identifiant',
-                    labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-                    prefixIcon: Icon(Icons.person_outline, color: Colors.white.withValues(alpha: 0.7)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.white, width: 2),
-                    ),
-                  ),
-                  textInputAction: TextInputAction.next,
-                ),
-                const SizedBox(height: 16),
-
-                // Champ mot de passe
-                TextField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Mot de passe',
-                    labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-                    prefixIcon: Icon(Icons.lock_outline, color: Colors.white.withValues(alpha: 0.7)),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.white, width: 2),
-                    ),
-                  ),
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => _handleLogin(),
-                ),
-                const SizedBox(height: 32),
-
-                // Bouton connexion
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _handleLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accentYellow,
-                      foregroundColor: AppColors.accentYellowDark,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: AppColors.accentYellowDark,
-                            ),
-                          )
-                        : const Text(
-                            'Se connecter',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Comptes de test
+                // Form card
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.xl),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: isDark ? AppColors.cardDark : AppColors.cardLight,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                    border: Border.all(
+                      color:
+                          isDark ? AppColors.borderDark : AppColors.borderLight,
+                    ),
+                    boxShadow: AppColors.shadowSm,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Identifiant field
                       Text(
-                        'Comptes de test',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                        'Identifiant',
+                        style: AppTypography.labelMedium.copyWith(
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimaryLight,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      _buildTestAccount('1611830', 'Jeremy Martin', '113 650 €'),
-                      _buildTestAccount('1622940', 'Marie Dupont', '42 800 €'),
-                      _buildTestAccount('1633050', 'Pierre Leroy', '198 320 €'),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
+                      TextField(
+                        controller: _identifiantController,
+                        focusNode: _identifiantFocus,
+                        keyboardType: TextInputType.number,
+                        style: AppTypography.bodyLarge.copyWith(
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimaryLight,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Entrez votre identifiant',
+                          prefixIcon: Icon(
+                            Icons.person_outline,
+                            color: isDark
+                                ? AppColors.textTertiaryDark
+                                : AppColors.textTertiaryLight,
+                            size: 20,
+                          ),
+                        ),
+                        textInputAction: TextInputAction.next,
+                        onSubmitted: (_) => _passwordFocus.requestFocus(),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      // Password field
                       Text(
-                        'Mot de passe: dev',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontSize: 12,
+                        'Mot de passe',
+                        style: AppTypography.labelMedium.copyWith(
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimaryLight,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      TextField(
+                        controller: _passwordController,
+                        focusNode: _passwordFocus,
+                        obscureText: _obscurePassword,
+                        style: AppTypography.bodyLarge.copyWith(
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimaryLight,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Entrez votre mot de passe',
+                          prefixIcon: Icon(
+                            Icons.lock_outline,
+                            color: isDark
+                                ? AppColors.textTertiaryDark
+                                : AppColors.textTertiaryLight,
+                            size: 20,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: isDark
+                                  ? AppColors.textTertiaryDark
+                                  : AppColors.textTertiaryLight,
+                              size: 20,
+                            ),
+                            onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword),
+                          ),
+                        ),
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _handleLogin(),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+
+                      // Login button
+                      SizedBox(
+                        width: double.infinity,
+                        height: AppSpacing.buttonHeightLg,
+                        child: ElevatedButton(
+                          onPressed: _isSubmitting ? null : _handleLogin,
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Se connecter'),
                         ),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(height: AppSpacing.xl),
+
+                // Test accounts
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.primaryLighterDark
+                        : AppColors.primaryLighter,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    border: Border.all(
+                      color: isDark
+                          ? AppColors.borderDark
+                          : AppColors.primary.withValues(alpha: 0.15),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.science_outlined,
+                            size: 16,
+                            color: isDark
+                                ? AppColors.primaryLightDark
+                                : AppColors.primary,
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Text(
+                            'Comptes de test',
+                            style: AppTypography.labelMedium.copyWith(
+                              color: isDark
+                                  ? AppColors.primaryLightDark
+                                  : AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      _buildTestAccount(
+                          '1611830', 'Jeremy Le Helloco', '113 650', isDark),
+                      _buildTestAccount(
+                          '1622940', 'Marie Dupont', '42 800', isDark),
+                      _buildTestAccount(
+                          '1633050', 'Pierre Leroy', '198 320', isDark),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'Mot de passe : dev',
+                        style: AppTypography.caption.copyWith(
+                          color: isDark
+                              ? AppColors.textTertiaryDark
+                              : AppColors.textTertiaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xxl),
               ],
             ),
           ),
@@ -224,39 +301,58 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildTestAccount(String id, String name, String balance) {
-    return GestureDetector(
-      onTap: () {
-        _identifiantController.text = id;
-        _passwordController.text = 'dev';
-      },
+  Widget _buildTestAccount(
+      String id, String name, String balance, bool isDark) {
+    return InkWell(
+      onTap: () => _fillTestAccount(id),
+      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.xs,
+          horizontal: AppSpacing.xxs,
+        ),
         child: Row(
           children: [
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xs,
+                vertical: AppSpacing.xxxs,
+              ),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.primaryDark
+                    : AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
+              ),
+              child: Text(
+                id,
+                style: AppTypography.labelSmall.copyWith(
+                  color:
+                      isDark ? AppColors.primaryLightDark : AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'monospace',
+                  letterSpacing: 0,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                name,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimaryLight,
+                ),
+              ),
+            ),
             Text(
-              id,
-              style: TextStyle(
-                color: AppColors.accentYellow.withValues(alpha: 0.9),
+              '$balance\u{202F}\u20AC',
+              style: AppTypography.labelSmall.copyWith(
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
                 fontWeight: FontWeight.w500,
-                fontSize: 13,
-                fontFamily: 'monospace',
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              name,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.8),
-                fontSize: 13,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              balance,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 12,
               ),
             ),
           ],
