@@ -14,7 +14,7 @@ class ApiConfig {
   /// URL de base du BFF.
   static const String baseUrl = String.fromEnvironment(
     'BFF_URL',
-    defaultValue: 'http://localhost:3000',
+    defaultValue: 'https://f298-2a01-cb08-10b6-3500-2173-7c5b-a060-ae24.ngrok-free.app',
   );
 
   /// Timeout pour les requetes HTTP
