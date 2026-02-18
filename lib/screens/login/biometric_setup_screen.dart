@@ -5,8 +5,36 @@ import '../../providers/app_provider.dart';
 
 /// Ecran propose apres la premiere connexion reussie
 /// pour activer la biometrie (Face ID / Touch ID).
-class BiometricSetupScreen extends StatelessWidget {
+class BiometricSetupScreen extends StatefulWidget {
   const BiometricSetupScreen({super.key});
+
+  @override
+  State<BiometricSetupScreen> createState() => _BiometricSetupScreenState();
+}
+
+class _BiometricSetupScreenState extends State<BiometricSetupScreen> {
+  bool _isActivating = false;
+  String? _errorMessage;
+
+  Future<void> _activateBiometric() async {
+    setState(() {
+      _isActivating = true;
+      _errorMessage = null;
+    });
+
+    final success =
+        await context.read<AppProvider>().enableBiometricFromPending();
+
+    if (!mounted) return;
+
+    if (!success) {
+      setState(() {
+        _isActivating = false;
+        _errorMessage =
+            'L\'authentification biometrique a echoue. Veuillez reessayer.';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,16 +90,37 @@ class BiometricSetupScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.xxxl),
 
+                // Error message
+                if (_errorMessage != null) ...[
+                  Text(
+                    _errorMessage!,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: Colors.red,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                ],
+
                 // Activer button
                 SizedBox(
                   width: double.infinity,
                   height: AppSpacing.buttonHeightLg,
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      context.read<AppProvider>().enableBiometricFromPending();
-                    },
-                    icon: const Icon(Icons.fingerprint, size: 22),
-                    label: const Text('Activer'),
+                    onPressed: _isActivating ? null : _activateBiometric,
+                    icon: _isActivating
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.fingerprint, size: 22),
+                    label: Text(_isActivating
+                        ? 'Verification...'
+                        : 'Activer'),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -81,15 +130,19 @@ class BiometricSetupScreen extends StatelessWidget {
                   width: double.infinity,
                   height: AppSpacing.buttonHeightLg,
                   child: OutlinedButton(
-                    onPressed: () {
-                      context.read<AppProvider>().declineBiometric();
-                    },
+                    onPressed: _isActivating
+                        ? null
+                        : () {
+                            context.read<AppProvider>().declineBiometric();
+                          },
                     child: Text(
                       'Plus tard',
                       style: AppTypography.labelMedium.copyWith(
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondaryLight,
+                        color: _isActivating
+                            ? Colors.grey
+                            : isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
                       ),
                     ),
                   ),

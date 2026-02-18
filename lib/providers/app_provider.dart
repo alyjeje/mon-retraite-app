@@ -277,12 +277,24 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Sauvegarde les credentials biometriques depuis l'ecran de setup
-  /// (utilise les credentials stockes temporairement apres le login)
-  Future<void> enableBiometricFromPending() async {
-    if (_pendingBioIdentifiant != null && _pendingBioMotDePasse != null) {
-      await enableBiometric(_pendingBioIdentifiant!, _pendingBioMotDePasse!);
+  /// Sauvegarde les credentials biometriques depuis l'ecran de setup.
+  /// Declenche d'abord l'authentification biometrique reelle (Face ID / Touch ID)
+  /// puis sauvegarde les credentials si l'utilisateur s'authentifie avec succes.
+  /// Retourne true si l'activation a reussi, false sinon.
+  Future<bool> enableBiometricFromPending() async {
+    if (_pendingBioIdentifiant == null || _pendingBioMotDePasse == null) {
+      return false;
     }
+
+    // Declencher la vraie authentification biometrique
+    final authenticated = await _biometricService.authenticate();
+    if (!authenticated) {
+      return false;
+    }
+
+    // Authentification reussie → sauvegarder les credentials
+    await enableBiometric(_pendingBioIdentifiant!, _pendingBioMotDePasse!);
+    return true;
   }
 
   /// Refuse la biometrie (ne pas sauvegarder)
