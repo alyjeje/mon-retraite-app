@@ -1,8 +1,6 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/theme.dart';
@@ -52,14 +50,6 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
       appBar: AppBar(
         title: const Text('Mes documents'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.download_outlined),
-            onPressed: () {
-              // Télécharger tous
-            },
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -268,36 +258,18 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                 ],
 
                 // Actions
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppButton(
-                        label: 'Aperçu',
-                        variant: AppButtonVariant.outline,
-                        leadingIcon: Icons.visibility_outlined,
-                        onPressed: () {
-                          Navigator.pop(sheetContext);
-                          _previewDocument(parentContext, document);
-                        },
-                      ),
-                    ),
-                    AppSpacing.horizontalGapMd,
-                    Expanded(
-                      child: AppButton(
-                        label: 'Télécharger',
-                        leadingIcon: Icons.download,
-                        onPressed: () {
-                          Navigator.pop(sheetContext);
-                          _downloadDocument(parentContext, document);
-                        },
-                      ),
-                    ),
-                  ],
+                AppButton(
+                  label: 'Aperçu',
+                  leadingIcon: Icons.visibility_outlined,
+                  onPressed: () {
+                    Navigator.pop(sheetContext);
+                    _previewDocument(parentContext, document);
+                  },
                 ),
                 AppSpacing.verticalGapMd,
                 AppButton(
                   label: 'Partager',
-                  variant: AppButtonVariant.secondary,
+                  variant: AppButtonVariant.outline,
                   leadingIcon: Icons.share_outlined,
                   onPressed: () {
                     Navigator.pop(sheetContext);
@@ -349,27 +321,6 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
         ),
       ),
     );
-  }
-
-  /// Telecharge le PDF dans le dossier local (Documents / Downloads)
-  Future<void> _downloadDocument(BuildContext context, DocumentModel document) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final bytes = await _fetchPdfBytes(context, document);
-    if (bytes == null || !mounted) return;
-
-    final dir = await getApplicationDocumentsDirectory();
-    final fileName = '${document.id}.pdf';
-    final file = File('${dir.path}/$fileName');
-    await file.writeAsBytes(bytes);
-
-    if (mounted) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Document sauvegarde : $fileName'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    }
   }
 
   /// Partage le PDF via la feuille de partage systeme

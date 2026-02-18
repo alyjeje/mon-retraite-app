@@ -42,6 +42,10 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white, size: 28),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(
           widget.title,
           style: const TextStyle(fontSize: 16),
