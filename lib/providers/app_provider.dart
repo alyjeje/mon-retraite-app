@@ -45,6 +45,11 @@ class AppProvider extends ChangeNotifier {
   bool _pendingBiometricPrompt = false;
   bool get pendingBiometricPrompt => _pendingBiometricPrompt;
 
+  // Biometric re-verification on app resume (user is still authenticated
+  // but must verify identity before seeing app content)
+  bool _requiresBiometricReauth = false;
+  bool get requiresBiometricReauth => _requiresBiometricReauth;
+
   // Temporary storage for biometric setup after first login
   String? _pendingBioIdentifiant;
   String? _pendingBioMotDePasse;
@@ -63,7 +68,30 @@ class AppProvider extends ChangeNotifier {
       timeoutMinutes: _inactivityTimeoutMinutes,
       onTimeout: () => softLogout(),
       onAppDetached: () => softLogout(),
+      onAppPaused: () => _onAppPaused(),
+      onAppResumed: () => _onAppResumed(),
     );
+  }
+
+  /// Called when app goes to background — lock screen if biometric is enabled
+  Future<void> _onAppPaused() async {
+    if (!_isAuthenticated) return;
+    final hasBio = await _biometricService.hasStoredCredentials();
+    if (hasBio) {
+      _requiresBiometricReauth = true;
+      notifyListeners();
+    }
+  }
+
+  /// Called when app comes back to foreground
+  void _onAppResumed() {
+    // The reauth screen handles triggering biometric automatically
+  }
+
+  /// Called after successful biometric re-verification on resume
+  void completeReauth() {
+    _requiresBiometricReauth = false;
+    notifyListeners();
   }
 
   void _stopInactivityService() {
@@ -323,6 +351,7 @@ class AppProvider extends ChangeNotifier {
     await _biometricService.clearCredentials();
     _isAuthenticated = false;
     _requiresBiometricAuth = false;
+    _requiresBiometricReauth = false;
     _dataLoaded = false;
     _user = null;
     _contracts = [];
@@ -339,6 +368,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> softLogout() async {
     _stopInactivityService();
     _isAuthenticated = false;
+    _requiresBiometricReauth = false;
     _dataLoaded = false;
     _user = null;
     _contracts = [];

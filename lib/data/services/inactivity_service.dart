@@ -13,15 +13,22 @@ class InactivityService with WidgetsBindingObserver {
   InactivityService({int timeoutMinutes = 60})
       : _timeoutMinutes = timeoutMinutes;
 
+  VoidCallback? _onAppPaused;
+  VoidCallback? _onAppResumed;
+
   /// Demarre le service
   void start({
     required int timeoutMinutes,
     required VoidCallback onTimeout,
     required VoidCallback onAppDetached,
+    VoidCallback? onAppPaused,
+    VoidCallback? onAppResumed,
   }) {
     _timeoutMinutes = timeoutMinutes;
     _onTimeout = onTimeout;
     _onAppDetached = onAppDetached;
+    _onAppPaused = onAppPaused;
+    _onAppResumed = onAppResumed;
     WidgetsBinding.instance.addObserver(this);
     _resetTimer();
   }
@@ -66,13 +73,15 @@ class InactivityService with WidgetsBindingObserver {
         _onAppDetached?.call();
         break;
       case AppLifecycleState.paused:
-        // App minimisee - ne rien faire, le timer continue
+        // App minimisee - notifier pour verrouiller l'ecran
         debugPrint('[InactivityService] App paused (minimized)');
+        _onAppPaused?.call();
         break;
       case AppLifecycleState.resumed:
-        // App revenue au premier plan - reset le timer
+        // App revenue au premier plan - reset le timer + notifier
         debugPrint('[InactivityService] App resumed');
         _resetTimer();
+        _onAppResumed?.call();
         break;
       default:
         break;

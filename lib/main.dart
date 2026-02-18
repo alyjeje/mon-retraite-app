@@ -8,6 +8,7 @@ import 'screens/main_shell.dart';
 import 'screens/login/login_screen.dart';
 import 'screens/login/biometric_prompt_screen.dart';
 import 'screens/login/biometric_setup_screen.dart';
+import 'screens/login/biometric_reauth_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,6 +65,10 @@ class MonRetraiteApp extends StatelessWidget {
       // Show biometric setup screen before entering the app
       if (provider.pendingBiometricPrompt) {
         return const BiometricSetupScreen();
+      }
+      // App was backgrounded — verify identity before showing content
+      if (provider.requiresBiometricReauth) {
+        return const BiometricReauthScreen();
       }
       return const MainShell();
     }
