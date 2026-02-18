@@ -3,6 +3,7 @@
  * Proxy vers l'API IGC /api/Documents/* et transforme en format mobile-friendly.
  */
 import { Router, Request, Response } from 'express';
+import { config } from '../config';
 import { bffAuthMiddleware } from '../middleware/auth';
 import { proxyToUpstream, getUpstreamToken } from '../middleware/proxy';
 
@@ -68,7 +69,7 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:id/download', async (req: Request, res: Response) => {
   try {
     const token = getUpstreamToken(req);
-    const baseUrl = require('../config').config.upstream.baseUrl.replace(/\/$/, '');
+    const baseUrl = config.upstream.baseUrl.replace(/\/$/, '');
     const url = `${baseUrl}/api/Documents/${req.params.id}/download`;
 
     const headers: Record<string, string> = {};

@@ -156,15 +156,16 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     }
     final dateFormat = DateFormat('dd MMMM yyyy', 'fr_FR');
 
+    final parentContext = context;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
+      builder: (_) => DraggableScrollableSheet(
         initialChildSize: 0.5,
         maxChildSize: 0.9,
         minChildSize: 0.3,
         expand: false,
-        builder: (context, scrollController) {
+        builder: (sheetContext, scrollController) {
           return SingleChildScrollView(
             controller: scrollController,
             padding: AppSpacing.screenPadding,
@@ -259,8 +260,8 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                     label: 'Signer le document',
                     leadingIcon: Icons.draw,
                     onPressed: () {
-                      Navigator.pop(context);
-                      _showSignatureDialog(context, document);
+                      Navigator.pop(sheetContext);
+                      _showSignatureDialog(parentContext, document);
                     },
                   ),
                   AppSpacing.verticalGapMd,
@@ -275,8 +276,8 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                         variant: AppButtonVariant.outline,
                         leadingIcon: Icons.visibility_outlined,
                         onPressed: () {
-                          Navigator.pop(context);
-                          _previewDocument(context, document);
+                          Navigator.pop(sheetContext);
+                          _previewDocument(parentContext, document);
                         },
                       ),
                     ),
@@ -286,8 +287,8 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                         label: 'Télécharger',
                         leadingIcon: Icons.download,
                         onPressed: () {
-                          Navigator.pop(context);
-                          _downloadDocument(context, document);
+                          Navigator.pop(sheetContext);
+                          _downloadDocument(parentContext, document);
                         },
                       ),
                     ),
@@ -299,8 +300,8 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                   variant: AppButtonVariant.secondary,
                   leadingIcon: Icons.share_outlined,
                   onPressed: () {
-                    Navigator.pop(context);
-                    _shareDocument(context, document);
+                    Navigator.pop(sheetContext);
+                    _shareDocument(parentContext, document);
                   },
                 ),
               ],
@@ -316,12 +317,16 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     try {
       final provider = context.read<AppProvider>();
       final bytes = await provider.downloadDocument(document.id);
+      if (bytes.isEmpty) {
+        throw Exception('PDF vide');
+      }
       return Uint8List.fromList(bytes);
     } catch (e) {
+      debugPrint('[Documents] Erreur telechargement PDF ${document.id}: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Impossible de telecharger le document.'),
+          SnackBar(
+            content: Text('Impossible de telecharger le document : $e'),
             backgroundColor: AppColors.error,
           ),
         );

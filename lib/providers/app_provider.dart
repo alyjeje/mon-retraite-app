@@ -572,15 +572,15 @@ class AppProvider extends ChangeNotifier {
   List<DashboardAlert> get dashboardAlerts => _synthese?.alerts ?? [];
   DashboardAlert? get topAlert => _synthese?.topAlert;
 
-  // Documents et notifications (depuis BFF, fallback MockData)
+  // Documents et notifications (depuis BFF, fallback MockData seulement en mode mock)
   List<DocumentModel> get documents =>
-      _documents.isNotEmpty ? _documents : MockData.documents;
+      _documents.isNotEmpty ? _documents : (_useMock ? MockData.documents : _documents);
   int get unreadDocumentsCount =>
       documents.where((d) => !d.isRead).length;
   int get pendingSignaturesCount =>
       documents.where((d) => d.requiresSignature && !d.isSigned).length;
   List<NotificationModel> get notifications =>
-      _notifications.isNotEmpty ? _notifications : MockData.notifications;
+      _notifications.isNotEmpty ? _notifications : (_useMock ? MockData.notifications : _notifications);
   int get unreadNotificationsCount => _unreadNotificationsCount > 0
       ? _unreadNotificationsCount
       : notifications.where((n) => !n.isRead).length;
@@ -763,6 +763,7 @@ class AppProvider extends ChangeNotifier {
 
   /// Telecharge le PDF d'un document (bytes bruts depuis le BFF)
   Future<List<int>> downloadDocument(String id) async {
+    debugPrint('[AppProvider] downloadDocument: $id (useMock=$_useMock)');
     return await _documentRepo.downloadDocument(id);
   }
 
