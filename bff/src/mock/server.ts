@@ -393,6 +393,288 @@ app.get(`${BASE}/api/Retraite/getSynthese`, (req, res) => {
 });
 
 // ============================================
+// DOCUMENTS - Documents par client (releves, attestations, contrats)
+// ============================================
+
+/** Genere des documents personnalises a partir des contrats du client */
+function generateDocuments(client: any): any[] {
+  const docs: any[] = [];
+  let docId = 1;
+  const now = new Date();
+
+  for (const [scont, contrat] of Object.entries(client.contratDetails) as [string, any][]) {
+    const produit = contrat.produit;
+    const ref = contrat.numeroContrat;
+
+    // Releve annuel 2025
+    docs.push({
+      id: `DOC-${client.identifiant}-${docId++}`,
+      titre: `Releve annuel 2025 - ${produit}`,
+      type: 'releve',
+      typeLibelle: 'Releve',
+      scont,
+      referenceContrat: ref,
+      produit,
+      dateCreation: '2026-01-15T00:00:00',
+      fichierUrl: `/documents/${ref}/releve_2025.pdf`,
+      fichierType: 'pdf',
+      tailleFichier: 245000,
+      lu: false,
+      annee: '2025',
+      description: `Recapitulatif de votre epargne ${produit} pour l'annee 2025`,
+    });
+
+    // Attestation fiscale 2025
+    docs.push({
+      id: `DOC-${client.identifiant}-${docId++}`,
+      titre: `Attestation fiscale 2025 - ${produit}`,
+      type: 'fiscal',
+      typeLibelle: 'Document fiscal',
+      scont,
+      referenceContrat: ref,
+      produit,
+      dateCreation: '2026-02-01T00:00:00',
+      fichierUrl: `/documents/${ref}/attestation_fiscale_2025.pdf`,
+      fichierType: 'pdf',
+      tailleFichier: 128000,
+      lu: true,
+      annee: '2025',
+      description: `Attestation pour votre declaration d'impots - contrat ${produit}`,
+    });
+
+    // Releve trimestriel T4 2025
+    docs.push({
+      id: `DOC-${client.identifiant}-${docId++}`,
+      titre: `Releve trimestriel T4 2025 - ${produit}`,
+      type: 'releve',
+      typeLibelle: 'Releve',
+      scont,
+      referenceContrat: ref,
+      produit,
+      dateCreation: '2026-01-05T00:00:00',
+      fichierUrl: `/documents/${ref}/releve_t4_2025.pdf`,
+      fichierType: 'pdf',
+      tailleFichier: 156000,
+      lu: true,
+      annee: '2025',
+    });
+
+    // Conditions generales
+    docs.push({
+      id: `DOC-${client.identifiant}-${docId++}`,
+      titre: `Conditions generales ${produit}`,
+      type: 'contrat',
+      typeLibelle: 'Contrat',
+      scont,
+      referenceContrat: ref,
+      produit,
+      dateCreation: contrat.dateEffet,
+      fichierUrl: `/documents/${ref}/conditions_generales.pdf`,
+      fichierType: 'pdf',
+      tailleFichier: 1250000,
+      lu: true,
+      description: `Conditions generales de votre contrat ${produit}`,
+    });
+
+    // Notice d'information
+    docs.push({
+      id: `DOC-${client.identifiant}-${docId++}`,
+      titre: `Notice d'information ${produit}`,
+      type: 'notice',
+      typeLibelle: 'Notice',
+      scont,
+      referenceContrat: ref,
+      produit,
+      dateCreation: contrat.dateEffet,
+      fichierUrl: `/documents/${ref}/notice_info.pdf`,
+      fichierType: 'pdf',
+      tailleFichier: 890000,
+      lu: true,
+      description: `Notice d'information de votre produit ${produit}`,
+    });
+  }
+
+  // Avenant a signer (premier contrat seulement — s'il y a au moins 2 contrats)
+  const sconts = Object.keys(client.contratDetails);
+  if (sconts.length >= 2) {
+    const secondScont = sconts[1];
+    const secondContrat = client.contratDetails[secondScont];
+    docs.push({
+      id: `DOC-${client.identifiant}-${docId++}`,
+      titre: `Avenant au contrat ${secondContrat.produit}`,
+      type: 'contrat',
+      typeLibelle: 'Contrat',
+      scont: secondScont,
+      referenceContrat: secondContrat.numeroContrat,
+      produit: secondContrat.produit,
+      dateCreation: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+      fichierUrl: `/documents/${secondContrat.numeroContrat}/avenant.pdf`,
+      fichierType: 'pdf',
+      tailleFichier: 340000,
+      lu: false,
+      signatureRequise: true,
+      signe: false,
+      description: 'Avenant a signer pour mise a jour des conditions',
+    });
+  }
+
+  // Trier par date decroissante
+  docs.sort((a, b) => new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime());
+  return docs;
+}
+
+app.get(`${BASE}/api/Documents/list`, (req, res) => {
+  const particip = getParticipFromToken(req);
+  if (!particip) return res.status(401).json({ message: 'Token invalide' });
+
+  const client = getClient(particip);
+  if (!client) return res.status(404).json({ message: 'Client non trouve' });
+
+  const documents = generateDocuments(client);
+
+  // Filtrage optionnel par type
+  const typeFilter = req.query.type as string | undefined;
+  const filtered = typeFilter
+    ? documents.filter(d => d.type === typeFilter)
+    : documents;
+
+  res.json({ documents: filtered, total: filtered.length });
+});
+
+app.post(`${BASE}/api/Documents/:docId/mark-read`, (req, res) => {
+  res.json({ success: true });
+});
+
+app.post(`${BASE}/api/Documents/:docId/sign`, (req, res) => {
+  res.json({ success: true, dateSigned: new Date().toISOString() });
+});
+
+// ============================================
+// NOTIFICATIONS - Notifications par client
+// ============================================
+
+/** Genere des notifications personnalisees pour le client */
+function generateNotifications(client: any): any[] {
+  const notifs: any[] = [];
+  let notifId = 1;
+  const now = new Date();
+  const nbContrats = Object.keys(client.contratDetails).length;
+
+  // Notification: nouveau releve disponible
+  notifs.push({
+    id: `NOTIF-${client.identifiant}-${notifId++}`,
+    titre: 'Nouveau document disponible',
+    message: 'Votre releve annuel 2025 est disponible dans votre coffre-fort.',
+    type: 'document',
+    typeLibelle: 'Document',
+    dateCreation: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    lu: false,
+    priorite: 2,
+    actionUrl: '/documents',
+  });
+
+  // Notification: performance mensuelle (montant dynamique depuis l'epargne)
+  const totalEpargne = Object.values(client.epargneUc as Record<string, any>).reduce(
+    (sum: number, e: any) => sum + (e.montantEpargne || 0), 0
+  );
+  const perfPct = (Math.random() * 2 + 0.5).toFixed(1);
+  notifs.push({
+    id: `NOTIF-${client.identifiant}-${notifId++}`,
+    titre: 'Performance mensuelle',
+    message: `Votre epargne de ${totalEpargne.toLocaleString('fr-FR')}€ a progresse de +${perfPct}% ce mois-ci.`,
+    type: 'performance',
+    typeLibelle: 'Performance',
+    dateCreation: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    lu: false,
+    priorite: 3,
+  });
+
+  // Notification: versement programme (si actif sur au moins 1 contrat)
+  for (const [scont, versement] of Object.entries(client.versement) as [string, any][]) {
+    if (versement.versementProgrammeActif) {
+      notifs.push({
+        id: `NOTIF-${client.identifiant}-${notifId++}`,
+        titre: 'Versement programme execute',
+        message: `Votre versement mensuel de ${versement.montantVP}€ a ete effectue avec succes.`,
+        type: 'versement',
+        typeLibelle: 'Versement',
+        dateCreation: versement.dateDernierPrelevement || now.toISOString(),
+        lu: true,
+        priorite: 3,
+      });
+      break; // un seul
+    }
+  }
+
+  // Notification: document a signer (si avenant existe)
+  if (nbContrats >= 2) {
+    const sconts = Object.keys(client.contratDetails);
+    const secondContrat = client.contratDetails[sconts[1]];
+    notifs.push({
+      id: `NOTIF-${client.identifiant}-${notifId++}`,
+      titre: 'Document a signer',
+      message: `Un avenant a votre contrat ${secondContrat.produit} necessite votre signature.`,
+      type: 'alerte',
+      typeLibelle: 'Alerte',
+      dateCreation: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+      lu: false,
+      priorite: 1,
+      actionUrl: '/documents',
+    });
+  }
+
+  // Notification: rappel beneficiaires
+  notifs.push({
+    id: `NOTIF-${client.identifiant}-${notifId++}`,
+    titre: 'Rappel : verifiez vos beneficiaires',
+    message: 'Il est recommande de verifier regulierement la clause beneficiaire de vos contrats.',
+    type: 'rappel',
+    typeLibelle: 'Rappel',
+    dateCreation: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+    lu: true,
+    priorite: 4,
+  });
+
+  // Notification: attestation fiscale disponible
+  notifs.push({
+    id: `NOTIF-${client.identifiant}-${notifId++}`,
+    titre: 'Attestation fiscale 2025',
+    message: `Votre IFU 2025 est maintenant disponible pour ${nbContrats} contrat${nbContrats > 1 ? 's' : ''}.`,
+    type: 'document',
+    typeLibelle: 'Document',
+    dateCreation: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    lu: true,
+    priorite: 3,
+    actionUrl: '/documents',
+  });
+
+  // Trier par date decroissante
+  notifs.sort((a, b) => new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime());
+  return notifs;
+}
+
+app.get(`${BASE}/api/Notifications/list`, (req, res) => {
+  const particip = getParticipFromToken(req);
+  if (!particip) return res.status(401).json({ message: 'Token invalide' });
+
+  const client = getClient(particip);
+  if (!client) return res.status(404).json({ message: 'Client non trouve' });
+
+  const notifications = generateNotifications(client);
+  const nonLues = notifications.filter(n => !n.lu).length;
+
+  res.json({ notifications, total: notifications.length, nonLues });
+});
+
+app.post(`${BASE}/api/Notifications/:notifId/mark-read`, (req, res) => {
+  res.json({ success: true });
+});
+
+app.post(`${BASE}/api/Notifications/mark-all-read`, (req, res) => {
+  res.json({ success: true });
+});
+
+// ============================================
 // UTILS - Code postal
 // ============================================
 app.get(`${BASE}/api/Utils/getCpVille/:cp`, (req, res) => {

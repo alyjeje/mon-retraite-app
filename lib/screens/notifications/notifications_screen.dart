@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/theme.dart';
+import '../../data/models/models.dart';
+import '../../providers/app_provider.dart';
 
-/// Écran des notifications
+/// Ecran des notifications (donnees dynamiques depuis le BFF)
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
@@ -12,59 +16,6 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
-  final List<Map<String, dynamic>> _notifications = [
-    {
-      'id': '1',
-      'type': 'document',
-      'icon': Icons.description_outlined,
-      'title': 'Nouveau document disponible',
-      'description': 'Votre relevé annuel 2025 est disponible',
-      'date': '2h',
-      'read': false,
-      'category': 'documents',
-    },
-    {
-      'id': '2',
-      'type': 'performance',
-      'icon': Icons.trending_up,
-      'title': 'Performance mensuelle',
-      'description': 'Votre épargne a progressé de +1,2% ce mois-ci',
-      'date': '1j',
-      'read': false,
-      'category': 'performance',
-    },
-    {
-      'id': '3',
-      'type': 'alert',
-      'icon': Icons.warning_amber_rounded,
-      'title': 'Action recommandée',
-      'description': 'Pensez à mettre à jour vos bénéficiaires',
-      'date': '2j',
-      'read': false,
-      'category': 'alerts',
-    },
-    {
-      'id': '4',
-      'type': 'success',
-      'icon': Icons.check_circle_outline,
-      'title': 'Versement validé',
-      'description': 'Votre versement de 200€ a été validé',
-      'date': '3j',
-      'read': true,
-      'category': 'payments',
-    },
-    {
-      'id': '5',
-      'type': 'document',
-      'icon': Icons.description_outlined,
-      'title': 'Attestation fiscale 2025',
-      'description': 'Votre IFU 2025 est maintenant disponible',
-      'date': '1 sem',
-      'read': true,
-      'category': 'documents',
-    },
-  ];
 
   @override
   void initState() {
@@ -78,53 +29,70 @@ class _NotificationsScreenState extends State<NotificationsScreen>
     super.dispose();
   }
 
-  int get _unreadCount => _notifications.where((n) => !n['read']).length;
-
-  void _markAsRead(String id) {
-    setState(() {
-      final index = _notifications.indexWhere((n) => n['id'] == id);
-      if (index != -1) {
-        _notifications[index]['read'] = true;
-      }
-    });
+  String _formatRelativeDate(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}min';
+    if (diff.inHours < 24) return '${diff.inHours}h';
+    if (diff.inDays < 7) return '${diff.inDays}j';
+    if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} sem';
+    return DateFormat('dd/MM/yyyy').format(date);
   }
 
-  void _markAllAsRead() {
-    setState(() {
-      for (var notification in _notifications) {
-        notification['read'] = true;
-      }
-    });
-  }
-
-  Color _getNotificationColor(String type) {
+  IconData _getNotificationIcon(NotificationType type) {
     switch (type) {
-      case 'document':
+      case NotificationType.document:
+        return Icons.description_outlined;
+      case NotificationType.payment:
+        return Icons.check_circle_outline;
+      case NotificationType.performance:
+        return Icons.trending_up;
+      case NotificationType.alert:
+        return Icons.warning_amber_rounded;
+      case NotificationType.reminder:
+        return Icons.schedule;
+      case NotificationType.info:
+        return Icons.info_outline;
+      case NotificationType.promotion:
+        return Icons.local_offer_outlined;
+    }
+  }
+
+  Color _getNotificationColor(NotificationType type) {
+    switch (type) {
+      case NotificationType.document:
         return AppColors.primary;
-      case 'performance':
+      case NotificationType.payment:
         return AppColors.success;
-      case 'alert':
+      case NotificationType.performance:
+        return AppColors.success;
+      case NotificationType.alert:
         return AppColors.warning;
-      case 'success':
-        return AppColors.success;
-      default:
+      case NotificationType.reminder:
+        return AppColors.info;
+      case NotificationType.info:
         return AppColors.textSecondaryLight;
+      case NotificationType.promotion:
+        return AppColors.accent;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final unreadNotifications = _notifications.where((n) => !n['read']).toList();
+    final provider = context.watch<AppProvider>();
+    final allNotifications = provider.notifications;
+    final unreadNotifications = allNotifications.where((n) => !n.isRead).toList();
+    final unreadCount = provider.unreadNotificationsCount;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
-          if (_unreadCount > 0)
+          if (unreadCount > 0)
             TextButton(
-              onPressed: _markAllAsRead,
+              onPressed: () => provider.markAllNotificationsAsRead(),
               child: const Text('Tout marquer comme lu'),
             ),
         ],
@@ -135,7 +103,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: Text(
-              '$_unreadCount non lue${_unreadCount > 1 ? 's' : ''}',
+              '$unreadCount non lue${unreadCount > 1 ? 's' : ''}',
               style: AppTypography.bodyMedium.copyWith(
                 color: isDark
                     ? AppColors.textSecondaryDark
@@ -169,8 +137,8 @@ class _NotificationsScreenState extends State<NotificationsScreen>
               labelStyle: AppTypography.labelMedium,
               dividerColor: Colors.transparent,
               tabs: [
-                Tab(text: 'Toutes (${_notifications.length})'),
-                Tab(text: 'Non lues ($_unreadCount)'),
+                Tab(text: 'Toutes (${allNotifications.length})'),
+                Tab(text: 'Non lues ($unreadCount)'),
               ],
             ),
           ),
@@ -181,10 +149,8 @@ class _NotificationsScreenState extends State<NotificationsScreen>
             child: TabBarView(
               controller: _tabController,
               children: [
-                // All notifications
-                _buildNotificationsList(_notifications),
-                // Unread notifications
-                _buildNotificationsList(unreadNotifications),
+                _buildNotificationsList(allNotifications, provider),
+                _buildNotificationsList(unreadNotifications, provider),
               ],
             ),
           ),
@@ -193,7 +159,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
     );
   }
 
-  Widget _buildNotificationsList(List<Map<String, dynamic>> notifications) {
+  Widget _buildNotificationsList(List<NotificationModel> notifications, AppProvider provider) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (notifications.isEmpty) {
@@ -229,21 +195,14 @@ class _NotificationsScreenState extends State<NotificationsScreen>
       itemBuilder: (context, index) {
         final notification = notifications[index];
         return _NotificationCard(
-          id: notification['id'] as String,
-          icon: notification['icon'] as IconData,
-          title: notification['title'] as String,
-          description: notification['description'] as String,
-          date: notification['date'] as String,
-          isRead: notification['read'] as bool,
-          color: _getNotificationColor(notification['type'] as String),
+          notification: notification,
+          icon: _getNotificationIcon(notification.type),
+          color: _getNotificationColor(notification.type),
+          relativeDate: _formatRelativeDate(notification.date),
           onTap: () {
-            _markAsRead(notification['id'] as String);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Notification marquée comme lue'),
-                duration: Duration(seconds: 1),
-              ),
-            );
+            if (!notification.isRead) {
+              provider.markNotificationAsRead(notification.id);
+            }
           },
         );
       },
@@ -252,29 +211,24 @@ class _NotificationsScreenState extends State<NotificationsScreen>
 }
 
 class _NotificationCard extends StatelessWidget {
-  final String id;
+  final NotificationModel notification;
   final IconData icon;
-  final String title;
-  final String description;
-  final String date;
-  final bool isRead;
   final Color color;
+  final String relativeDate;
   final VoidCallback onTap;
 
   const _NotificationCard({
-    required this.id,
+    required this.notification,
     required this.icon,
-    required this.title,
-    required this.description,
-    required this.date,
-    required this.isRead,
     required this.color,
+    required this.relativeDate,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isRead = notification.isRead;
 
     return GestureDetector(
       onTap: onTap,
@@ -331,7 +285,7 @@ class _NotificationCard extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  title,
+                                  notification.title,
                                   style: AppTypography.labelMedium.copyWith(
                                     color: isRead
                                         ? (isDark
@@ -347,7 +301,7 @@ class _NotificationCard extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                date,
+                                relativeDate,
                                 style: AppTypography.caption.copyWith(
                                   color: isDark
                                       ? AppColors.textTertiaryDark
@@ -358,7 +312,7 @@ class _NotificationCard extends StatelessWidget {
                           ),
                           AppSpacing.verticalGapXxs,
                           Text(
-                            description,
+                            notification.message,
                             style: AppTypography.bodySmall.copyWith(
                               color: isDark
                                   ? AppColors.textSecondaryDark

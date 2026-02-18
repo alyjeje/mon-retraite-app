@@ -146,6 +146,9 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   }
 
   void _showDocumentDetails(BuildContext context, DocumentModel document) {
+    if (!document.isRead) {
+      context.read<AppProvider>().markDocumentAsRead(document.id);
+    }
     final dateFormat = DateFormat('dd MMMM yyyy', 'fr_FR');
 
     showModalBottomSheet(
@@ -336,6 +339,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
+              context.read<AppProvider>().signDocument(document.id);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Document signé avec succès !'),

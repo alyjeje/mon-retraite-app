@@ -38,6 +38,16 @@ class ApiEndpoints {
   static const String representationPrelevement =
       '/actions/representation-prelevement';
 
+  // Documents
+  static const String documents = '/documents';
+  static String documentMarkRead(String id) => '/documents/$id/mark-read';
+  static String documentSign(String id) => '/documents/$id/sign';
+
+  // Notifications
+  static const String notificationsList = '/notifications/list';
+  static String notificationMarkRead(String id) => '/notifications/$id/mark-read';
+  static const String notificationsMarkAllRead = '/notifications/mark-all-read';
+
   // Dashboard
   static const String dashboardSynthese = '/dashboard/synthese';
 

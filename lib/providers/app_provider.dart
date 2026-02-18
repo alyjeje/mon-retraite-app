@@ -7,6 +7,8 @@ import '../data/repositories/auth_repository.dart';
 import '../data/repositories/profil_repository.dart';
 import '../data/repositories/contrat_repository.dart';
 import '../data/repositories/dashboard_repository.dart';
+import '../data/repositories/document_repository.dart';
+import '../data/repositories/notification_repository.dart';
 import '../data/services/biometric_service.dart';
 import '../data/services/inactivity_service.dart';
 
@@ -24,6 +26,8 @@ class AppProvider extends ChangeNotifier {
   late final ProfilRepository _profilRepo = ProfilRepository(_api);
   late final ContratRepository _contratRepo = ContratRepository(_api);
   late final DashboardRepository _dashboardRepo = DashboardRepository(_api);
+  late final DocumentRepository _documentRepo = DocumentRepository(_api);
+  late final NotificationRepository _notificationRepo = NotificationRepository(_api);
 
   // Biometric
   final BiometricService _biometricService = BiometricService();
@@ -123,6 +127,11 @@ class AppProvider extends ChangeNotifier {
   double _totalBalance = 0;
   double _totalGains = 0;
   double _overallPerformance = 0;
+
+  // Documents et notifications (depuis BFF)
+  List<DocumentModel> _documents = [];
+  List<NotificationModel> _notifications = [];
+  int _unreadNotificationsCount = 0;
 
   // Dashboard synthese (allocation globale + alertes dynamiques)
   DashboardSynthese? _synthese;
@@ -391,6 +400,9 @@ class AppProvider extends ChangeNotifier {
     _totalGains = 0;
     _overallPerformance = 0;
     _synthese = null;
+    _documents = [];
+    _notifications = [];
+    _unreadNotificationsCount = 0;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_lockedKey);
@@ -410,6 +422,9 @@ class AppProvider extends ChangeNotifier {
     _totalGains = 0;
     _overallPerformance = 0;
     _synthese = null;
+    _documents = [];
+    _notifications = [];
+    _unreadNotificationsCount = 0;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_lockedKey);
@@ -481,6 +496,20 @@ class AppProvider extends ChangeNotifier {
         debugPrint('[AppProvider] Synthese indisponible: $e');
       }
 
+      // 6. Charger documents et notifications en parallele
+      try {
+        final results = await Future.wait([
+          _documentRepo.getDocuments(),
+          _notificationRepo.getNotifications(),
+        ]);
+        _documents = results[0] as List<DocumentModel>;
+        final notifResult = results[1] as NotificationListResult;
+        _notifications = notifResult.notifications;
+        _unreadNotificationsCount = notifResult.unreadCount;
+      } catch (e) {
+        debugPrint('[AppProvider] Documents/Notifications indisponibles: $e');
+      }
+
       _useMock = false;
       _dataLoaded = true;
       _isLoading = false;
@@ -500,6 +529,9 @@ class AppProvider extends ChangeNotifier {
     _totalGains = MockData.totalGains;
     _overallPerformance = MockData.overallPerformance;
     _synthese = null;
+    _documents = MockData.documents;
+    _notifications = MockData.notifications;
+    _unreadNotificationsCount = MockData.unreadNotificationsCount;
     _useMock = true;
     _dataLoaded = true;
     _isLoading = false;
@@ -540,16 +572,24 @@ class AppProvider extends ChangeNotifier {
   List<DashboardAlert> get dashboardAlerts => _synthese?.alerts ?? [];
   DashboardAlert? get topAlert => _synthese?.topAlert;
 
+  // Documents et notifications (depuis BFF, fallback MockData)
+  List<DocumentModel> get documents =>
+      _documents.isNotEmpty ? _documents : MockData.documents;
+  int get unreadDocumentsCount =>
+      documents.where((d) => !d.isRead).length;
+  int get pendingSignaturesCount =>
+      documents.where((d) => d.requiresSignature && !d.isSigned).length;
+  List<NotificationModel> get notifications =>
+      _notifications.isNotEmpty ? _notifications : MockData.notifications;
+  int get unreadNotificationsCount => _unreadNotificationsCount > 0
+      ? _unreadNotificationsCount
+      : notifications.where((n) => !n.isRead).length;
+
   // Donnees encore sur mock (pas dans le Swagger)
   List<BeneficiaryModel> get beneficiaries => MockData.beneficiaries;
   List<ScheduledPaymentModel> get scheduledPayments =>
       MockData.scheduledPayments;
   List<BankAccountModel> get bankAccounts => MockData.bankAccounts;
-  List<DocumentModel> get documents => MockData.documents;
-  int get unreadDocumentsCount => MockData.unreadDocumentsCount;
-  int get pendingSignaturesCount => MockData.pendingSignaturesCount;
-  List<NotificationModel> get notifications => MockData.notifications;
-  int get unreadNotificationsCount => MockData.unreadNotificationsCount;
   List<AlertModel> get alerts => MockData.alerts;
 
   List<DocumentModel> getDocumentsForContract(String contractId) {
@@ -620,11 +660,104 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
-  void markNotificationAsRead(String id) {
+  Future<void> markNotificationAsRead(String id) async {
+    try {
+      await _notificationRepo.markAsRead(id);
+      final idx = _notifications.indexWhere((n) => n.id == id);
+      if (idx != -1 && !_notifications[idx].isRead) {
+        _notifications[idx] = NotificationModel(
+          id: _notifications[idx].id,
+          title: _notifications[idx].title,
+          message: _notifications[idx].message,
+          type: _notifications[idx].type,
+          date: _notifications[idx].date,
+          isRead: true,
+          priority: _notifications[idx].priority,
+          actionUrl: _notifications[idx].actionUrl,
+          relatedId: _notifications[idx].relatedId,
+        );
+        if (_unreadNotificationsCount > 0) _unreadNotificationsCount--;
+      }
+    } catch (e) {
+      debugPrint('[AppProvider] markNotificationAsRead error: $e');
+    }
     notifyListeners();
   }
 
-  void markDocumentAsRead(String id) {
+  Future<void> markAllNotificationsAsRead() async {
+    try {
+      await _notificationRepo.markAllAsRead();
+      _notifications = _notifications.map((n) => NotificationModel(
+        id: n.id,
+        title: n.title,
+        message: n.message,
+        type: n.type,
+        date: n.date,
+        isRead: true,
+        priority: n.priority,
+        actionUrl: n.actionUrl,
+        relatedId: n.relatedId,
+      )).toList();
+      _unreadNotificationsCount = 0;
+    } catch (e) {
+      debugPrint('[AppProvider] markAllNotificationsAsRead error: $e');
+    }
+    notifyListeners();
+  }
+
+  Future<void> markDocumentAsRead(String id) async {
+    try {
+      await _documentRepo.markAsRead(id);
+      final idx = _documents.indexWhere((d) => d.id == id);
+      if (idx != -1 && !_documents[idx].isRead) {
+        final d = _documents[idx];
+        _documents[idx] = DocumentModel(
+          id: d.id,
+          title: d.title,
+          type: d.type,
+          contractId: d.contractId,
+          date: d.date,
+          fileUrl: d.fileUrl,
+          fileType: d.fileType,
+          fileSize: d.fileSize,
+          isRead: true,
+          year: d.year,
+          description: d.description,
+          requiresSignature: d.requiresSignature,
+          isSigned: d.isSigned,
+        );
+      }
+    } catch (e) {
+      debugPrint('[AppProvider] markDocumentAsRead error: $e');
+    }
+    notifyListeners();
+  }
+
+  Future<void> signDocument(String id) async {
+    try {
+      await _documentRepo.signDocument(id);
+      final idx = _documents.indexWhere((d) => d.id == id);
+      if (idx != -1) {
+        final d = _documents[idx];
+        _documents[idx] = DocumentModel(
+          id: d.id,
+          title: d.title,
+          type: d.type,
+          contractId: d.contractId,
+          date: d.date,
+          fileUrl: d.fileUrl,
+          fileType: d.fileType,
+          fileSize: d.fileSize,
+          isRead: true,
+          year: d.year,
+          description: d.description,
+          requiresSignature: d.requiresSignature,
+          isSigned: true,
+        );
+      }
+    } catch (e) {
+      debugPrint('[AppProvider] signDocument error: $e');
+    }
     notifyListeners();
   }
 
