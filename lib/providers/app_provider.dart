@@ -15,6 +15,7 @@ class AppProvider extends ChangeNotifier {
   static const String _themeModeKey = 'theme_mode';
   static const String _tokenKey = 'bff_token';
   static const String _timeoutKey = 'inactivity_timeout_minutes';
+  static const String _lockedKey = 'session_locked';
 
   // API layer
   final ApiClient _api = ApiClient();
@@ -73,11 +74,16 @@ class AppProvider extends ChangeNotifier {
     );
   }
 
-  /// Called when app goes to background — lock screen if biometric is enabled
+  /// Called when app goes to background — lock screen if biometric is enabled.
+  /// Also persists a 'locked' flag so that a cold start (app killed) will
+  /// require biometric re-authentication even if the BFF token is still valid.
   Future<void> _onAppPaused() async {
     if (!_isAuthenticated) return;
     final hasBio = await _biometricService.hasStoredCredentials();
     if (hasBio) {
+      // Persist lock flag for cold-start scenario (iOS kills app without detached)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_lockedKey, true);
       _requiresBiometricReauth = true;
       notifyListeners();
     }
@@ -89,8 +95,10 @@ class AppProvider extends ChangeNotifier {
   }
 
   /// Called after successful biometric re-verification on resume
-  void completeReauth() {
+  Future<void> completeReauth() async {
     _requiresBiometricReauth = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_lockedKey);
     notifyListeners();
   }
 
@@ -208,6 +216,24 @@ class AppProvider extends ChangeNotifier {
       _api.setToken(savedToken);
       final refreshed = await _authRepo.refresh();
       if (refreshed) {
+        // Token still valid — but check if the session was locked (app was
+        // backgrounded / killed on iOS before detached could fire).
+        final wasLocked = prefs.getBool(_lockedKey) ?? false;
+        final hasBio = await _biometricService.hasStoredCredentials();
+        final bioAvailable = await _biometricService.isAvailable();
+
+        if (wasLocked && hasBio && bioAvailable) {
+          // Session is valid but locked — require biometric before showing app.
+          // We keep the token so loginWithBiometrics is not needed; just a
+          // local Face ID / Touch ID check.
+          _isAuthenticated = true;
+          _requiresBiometricReauth = true;
+          _startInactivityService();
+          notifyListeners();
+          await loadAllData();
+          return;
+        }
+
         _isAuthenticated = true;
         _startInactivityService();
         notifyListeners();
@@ -216,6 +242,7 @@ class AppProvider extends ChangeNotifier {
       }
       // Token expire, on nettoie
       await prefs.remove(_tokenKey);
+      await prefs.remove(_lockedKey);
       _api.clearToken();
     }
 
@@ -361,6 +388,7 @@ class AppProvider extends ChangeNotifier {
     _overallPerformance = 0;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+    await prefs.remove(_lockedKey);
     notifyListeners();
   }
 
@@ -378,6 +406,7 @@ class AppProvider extends ChangeNotifier {
     _overallPerformance = 0;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+    await prefs.remove(_lockedKey);
     _api.clearToken();
 
     // Check if biometric creds exist -> show biometric prompt
