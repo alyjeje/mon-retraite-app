@@ -38,6 +38,9 @@ class ApiEndpoints {
   static const String representationPrelevement =
       '/actions/representation-prelevement';
 
+  // Dashboard
+  static const String dashboardSynthese = '/dashboard/synthese';
+
   // Health
   static const String health = '/health';
 }

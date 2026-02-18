@@ -6,6 +6,7 @@ import '../data/models/models.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/repositories/profil_repository.dart';
 import '../data/repositories/contrat_repository.dart';
+import '../data/repositories/dashboard_repository.dart';
 import '../data/services/biometric_service.dart';
 import '../data/services/inactivity_service.dart';
 
@@ -22,6 +23,7 @@ class AppProvider extends ChangeNotifier {
   late final AuthRepository _authRepo = AuthRepository(_api);
   late final ProfilRepository _profilRepo = ProfilRepository(_api);
   late final ContratRepository _contratRepo = ContratRepository(_api);
+  late final DashboardRepository _dashboardRepo = DashboardRepository(_api);
 
   // Biometric
   final BiometricService _biometricService = BiometricService();
@@ -121,6 +123,9 @@ class AppProvider extends ChangeNotifier {
   double _totalBalance = 0;
   double _totalGains = 0;
   double _overallPerformance = 0;
+
+  // Dashboard synthese (allocation globale + alertes dynamiques)
+  DashboardSynthese? _synthese;
 
   AppProvider() {
     _loadThemePreference();
@@ -385,6 +390,7 @@ class AppProvider extends ChangeNotifier {
     _totalBalance = 0;
     _totalGains = 0;
     _overallPerformance = 0;
+    _synthese = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_lockedKey);
@@ -403,6 +409,7 @@ class AppProvider extends ChangeNotifier {
     _totalBalance = 0;
     _totalGains = 0;
     _overallPerformance = 0;
+    _synthese = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_lockedKey);
@@ -467,6 +474,13 @@ class AppProvider extends ChangeNotifier {
           ? (_totalGains / (_totalBalance - _totalGains)) * 100
           : 0;
 
+      // 5. Charger la synthese dashboard (allocation globale + alertes)
+      try {
+        _synthese = await _dashboardRepo.getSynthese();
+      } catch (e) {
+        debugPrint('[AppProvider] Synthese indisponible: $e');
+      }
+
       _useMock = false;
       _dataLoaded = true;
       _isLoading = false;
@@ -485,6 +499,7 @@ class AppProvider extends ChangeNotifier {
     _totalBalance = MockData.totalBalance;
     _totalGains = MockData.totalGains;
     _overallPerformance = MockData.overallPerformance;
+    _synthese = null;
     _useMock = true;
     _dataLoaded = true;
     _isLoading = false;
@@ -517,6 +532,13 @@ class AppProvider extends ChangeNotifier {
   List<TransactionModel> getTransactionsForContract(String contractId) {
     return transactions.where((t) => t.contractId == contractId).toList();
   }
+
+  // Dashboard synthese (allocation globale + alertes dynamiques depuis BFF)
+  DashboardSynthese? get synthese => _synthese;
+  List<GlobalAllocationItem> get globalAllocation =>
+      _synthese?.globalAllocation ?? [];
+  List<DashboardAlert> get dashboardAlerts => _synthese?.alerts ?? [];
+  DashboardAlert? get topAlert => _synthese?.topAlert;
 
   // Donnees encore sur mock (pas dans le Swagger)
   List<BeneficiaryModel> get beneficiaries => MockData.beneficiaries;

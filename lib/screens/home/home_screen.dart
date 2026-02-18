@@ -44,8 +44,8 @@ class HomeScreen extends StatelessWidget {
               // En-tête de bienvenue
               _buildHeader(context, provider),
 
-              // Alerte action recommandée
-              _buildWarningAlert(context),
+              // Alerte dynamique (depuis le BFF)
+              _buildDynamicAlert(context, provider),
 
               // Synthèse patrimoniale
               Padding(
@@ -59,6 +59,13 @@ class HomeScreen extends StatelessWidget {
               ),
 
               AppSpacing.verticalGapLg,
+
+              // Allocation globale (depuis le BFF)
+              if (provider.globalAllocation.isNotEmpty)
+                _buildGlobalAllocation(context, provider),
+
+              if (provider.globalAllocation.isNotEmpty)
+                AppSpacing.verticalGapLg,
 
               // Mes contrats
               _buildContractsSection(context, provider),
@@ -129,7 +136,19 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWarningAlert(BuildContext context) {
+  Widget _buildDynamicAlert(BuildContext context, AppProvider provider) {
+    final alert = provider.topAlert;
+    if (alert == null) {
+      return const SizedBox.shrink();
+    }
+
+    // Choisir le type d'alerte selon le type backend
+    final alertType = alert.type == 'retraite'
+        ? AlertCardType.info
+        : alert.type == 'allocation'
+            ? AlertCardType.warning
+            : AlertCardType.warning;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
@@ -138,12 +157,129 @@ class HomeScreen extends StatelessWidget {
         AppSpacing.md,
       ),
       child: AlertCard(
-        title: 'Action recommandée',
-        message: 'Pensez à mettre à jour vos bénéficiaires pour sécuriser votre succession.',
-        type: AlertCardType.warning,
+        title: alert.title,
+        message: alert.message,
+        type: alertType,
         onDismiss: () {},
       ),
     );
+  }
+
+  Widget _buildGlobalAllocation(BuildContext context, AppProvider provider) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final allocations = provider.globalAllocation;
+
+    // Couleurs par categorie de support
+    final categoryColors = {
+      'FE001': AppColors.primary,
+      'AE001': AppColors.accentYellow,
+      'OB001': AppColors.info,
+      'IM001': AppColors.success,
+    };
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.cardDark : AppColors.cardLight,
+          borderRadius: AppSpacing.cardRadius,
+          border: Border.all(
+            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          ),
+        ),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Allocation globale',
+              style: AppTypography.headlineSmall.copyWith(
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight,
+              ),
+            ),
+            AppSpacing.verticalGapMd,
+            // Barre de repartition
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: SizedBox(
+                height: 12,
+                child: Row(
+                  children: allocations.map((a) {
+                    final color = categoryColors[a.code] ?? Colors.grey;
+                    return Expanded(
+                      flex: (a.percentage * 10).round(),
+                      child: Container(color: color),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            AppSpacing.verticalGapMd,
+            // Detail par support
+            ...allocations.map((a) {
+              final color = categoryColors[a.code] ?? Colors.grey;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        a.label,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${a.percentage.toStringAsFixed(1)}%',
+                      style: AppTypography.labelMedium.copyWith(
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimaryLight,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 80,
+                      child: Text(
+                        _formatAmount(a.amount),
+                        textAlign: TextAlign.right,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatAmount(double amount) {
+    if (amount >= 1000) {
+      return '${(amount / 1000).toStringAsFixed(1)}k\u20AC';
+    }
+    return '${amount.toStringAsFixed(0)}\u20AC';
   }
 
   Widget _buildContractsSection(BuildContext context, AppProvider provider) {

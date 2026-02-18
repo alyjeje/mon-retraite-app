@@ -292,6 +292,107 @@ app.post(`${BASE}/api/Retraite/delete-versement-mensuel/:scont`, (_req, res) => 
 });
 
 // ============================================
+// RETRAITE - Synthese globale (allocation + alertes)
+// ============================================
+app.get(`${BASE}/api/Retraite/getSynthese`, (req, res) => {
+  const particip = getParticipFromToken(req);
+  if (!particip) return res.status(401).json({ message: 'Token invalide' });
+
+  const client = getClient(particip);
+  if (!client) return res.status(404).json({ message: 'Client non trouve' });
+
+  // Agreger l'allocation globale depuis tous les contrats
+  const supportTotals: Record<string, { libelle: string; montant: number; code: string }> = {};
+  let totalEpargne = 0;
+
+  for (const epargne of Object.values(client.epargneUc) as any[]) {
+    totalEpargne += epargne.montantEpargne || 0;
+    for (const socle of epargne.socles || []) {
+      for (const support of socle.supports || []) {
+        const code = support.codeSupport;
+        if (!supportTotals[code]) {
+          supportTotals[code] = { libelle: support.libelleSupportFR, montant: 0, code };
+        }
+        supportTotals[code].montant += support.montantEpargne || 0;
+      }
+    }
+  }
+
+  // Calculer les pourcentages
+  const allocationGlobale = Object.values(supportTotals).map(s => ({
+    codeSupport: s.code,
+    libelle: s.libelle,
+    montant: s.montant,
+    pourcentage: totalEpargne > 0 ? Math.round((s.montant / totalEpargne) * 1000) / 10 : 0,
+  }));
+
+  // Generer des alertes personnalisees selon le profil
+  const alertes: { type: string; titre: string; message: string; priorite: number }[] = [];
+  const nbContrats = Object.keys(client.contratDetails).length;
+  const adhesions = client.adhesions || [];
+
+  // Regle 1: Pas de versement programme sur un contrat
+  for (const [scont, versement] of Object.entries(client.versement) as [string, any][]) {
+    if (!versement.versementProgrammeActif) {
+      const contrat = client.contratDetails[scont];
+      if (contrat) {
+        alertes.push({
+          type: 'versement',
+          titre: 'Versement programme',
+          message: `Activez un versement programme sur votre contrat ${contrat.produit} pour epargner regulierement.`,
+          priorite: 2,
+        });
+      }
+    }
+  }
+
+  // Regle 2: Allocation trop concentree sur le fonds euro (> 60%)
+  const fondsEuro = allocationGlobale.find(a => a.codeSupport === 'FE001');
+  if (fondsEuro && fondsEuro.pourcentage > 60) {
+    alertes.push({
+      type: 'allocation',
+      titre: 'Diversification',
+      message: `Votre epargne est concentree a ${fondsEuro.pourcentage}% sur le Fonds Euro. Diversifiez pour optimiser votre rendement.`,
+      priorite: 1,
+    });
+  }
+
+  // Regle 3: Proche de la retraite (age > 60)
+  const dateNaissance = new Date(client.profil.dateNaissance);
+  const age = Math.floor((Date.now() - dateNaissance.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+  if (age >= 60) {
+    alertes.push({
+      type: 'retraite',
+      titre: 'Depart en retraite',
+      message: `A ${age} ans, pensez a securiser votre epargne en augmentant la part Fonds Euro.`,
+      priorite: 1,
+    });
+  }
+
+  // Regle 4: Optimisation fiscale (si PERIN et pas de versement recent > 5000)
+  const hasPerin = adhesions.some((a: any) => a.contrat?.type === 'PERIN');
+  if (hasPerin && totalEpargne < 100000) {
+    alertes.push({
+      type: 'fiscalite',
+      titre: 'Optimisation fiscale',
+      message: 'Maximisez vos deductions fiscales en effectuant un versement volontaire sur votre PERIN avant la fin de l\'annee.',
+      priorite: 3,
+    });
+  }
+
+  // Trier par priorite (1 = plus important)
+  alertes.sort((a, b) => a.priorite - b.priorite);
+
+  res.json({
+    totalEpargne,
+    nombreContrats: nbContrats,
+    allocationGlobale,
+    alertes,
+    dateSynthese: new Date().toISOString(),
+  });
+});
+
+// ============================================
 // UTILS - Code postal
 // ============================================
 app.get(`${BASE}/api/Utils/getCpVille/:cp`, (req, res) => {

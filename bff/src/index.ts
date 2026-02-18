@@ -24,6 +24,7 @@ import contratsRoutes from './routes/contrats';
 import actionsRoutes from './routes/actions';
 import adminRoutes from './routes/admin';
 import notificationsRoutes from './routes/notifications';
+import dashboardRoutes from './routes/dashboard';
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use('/contrats', contratsRoutes);
 app.use('/actions', actionsRoutes);
 app.use('/admin', adminRoutes);
 app.use('/notifications', notificationsRoutes);
+app.use('/dashboard', dashboardRoutes);
 
 // 404
 app.use((_req, res) => {
@@ -88,6 +90,7 @@ app.listen(config.bff.port, () => {
   console.log('    POST /actions/modifier-age-retraite');
   console.log('    GET  /auth/config');
   console.log('    POST /auth/logout');
+  console.log('    GET  /dashboard/synthese');
   console.log('    GET  /admin              (dashboard)');
   console.log('');
   console.log('  Admin:');
