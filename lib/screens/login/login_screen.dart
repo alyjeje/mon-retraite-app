@@ -46,9 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       setState(() => _isSubmitting = false);
 
-      if (success && provider.pendingBiometricPrompt) {
-        _showBiometricDialog(identifiant, password);
-      } else if (!success && provider.authError != null) {
+      if (!success && provider.authError != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(provider.authError!),
@@ -57,79 +55,6 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     }
-  }
-
-  void _showBiometricDialog(String identifiant, String password) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.cardDark : AppColors.cardLight,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        ),
-        icon: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: isDark
-                ? AppColors.primaryLighterDark
-                : AppColors.primaryLighter,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.fingerprint,
-            size: 32,
-            color: AppColors.primary,
-          ),
-        ),
-        title: Text(
-          'Connexion biometrique',
-          style: AppTypography.headlineMedium.copyWith(
-            color: isDark
-                ? AppColors.textPrimaryDark
-                : AppColors.textPrimaryLight,
-          ),
-        ),
-        content: Text(
-          'Souhaitez-vous activer la connexion par empreinte digitale ou Face ID pour vos prochaines connexions ?',
-          style: AppTypography.bodyMedium.copyWith(
-            color: isDark
-                ? AppColors.textSecondaryDark
-                : AppColors.textSecondaryLight,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<AppProvider>().declineBiometric();
-            },
-            child: Text(
-              'Plus tard',
-              style: AppTypography.labelMedium.copyWith(
-                color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondaryLight,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await context
-                  .read<AppProvider>()
-                  .enableBiometric(identifiant, password);
-            },
-            child: const Text('Activer'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _fillTestAccount(String id) {

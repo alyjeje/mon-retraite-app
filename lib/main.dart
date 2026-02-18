@@ -7,6 +7,7 @@ import 'providers/app_provider.dart';
 import 'screens/main_shell.dart';
 import 'screens/login/login_screen.dart';
 import 'screens/login/biometric_prompt_screen.dart';
+import 'screens/login/biometric_setup_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,6 +61,10 @@ class MonRetraiteApp extends StatelessWidget {
 
   Widget _buildAuthGate(AppProvider provider) {
     if (provider.isAuthenticated) {
+      // Show biometric setup screen before entering the app
+      if (provider.pendingBiometricPrompt) {
+        return const BiometricSetupScreen();
+      }
       return const MainShell();
     }
     if (provider.requiresBiometricAuth) {

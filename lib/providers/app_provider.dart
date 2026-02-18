@@ -44,10 +44,10 @@ class AppProvider extends ChangeNotifier {
   bool get requiresBiometricAuth => _requiresBiometricAuth;
   bool _pendingBiometricPrompt = false;
   bool get pendingBiometricPrompt => _pendingBiometricPrompt;
-  void clearBiometricPrompt() {
-    _pendingBiometricPrompt = false;
-    notifyListeners();
-  }
+
+  // Temporary storage for biometric setup after first login
+  String? _pendingBioIdentifiant;
+  String? _pendingBioMotDePasse;
 
   // Inactivity timeout (from BFF config)
   int _inactivityTimeoutMinutes = 60;
@@ -231,6 +231,8 @@ class AppProvider extends ChangeNotifier {
           // Prompt biometric if: no stored creds, or different account
           if (storedId == null || storedId != identifiant) {
             _pendingBiometricPrompt = true;
+            _pendingBioIdentifiant = identifiant;
+            _pendingBioMotDePasse = motDePasse;
           }
         }
 
@@ -270,12 +272,24 @@ class AppProvider extends ChangeNotifier {
   Future<void> enableBiometric(String identifiant, String motDePasse) async {
     await _biometricService.saveCredentials(identifiant, motDePasse);
     _pendingBiometricPrompt = false;
+    _pendingBioIdentifiant = null;
+    _pendingBioMotDePasse = null;
     notifyListeners();
+  }
+
+  /// Sauvegarde les credentials biometriques depuis l'ecran de setup
+  /// (utilise les credentials stockes temporairement apres le login)
+  Future<void> enableBiometricFromPending() async {
+    if (_pendingBioIdentifiant != null && _pendingBioMotDePasse != null) {
+      await enableBiometric(_pendingBioIdentifiant!, _pendingBioMotDePasse!);
+    }
   }
 
   /// Refuse la biometrie (ne pas sauvegarder)
   void declineBiometric() {
     _pendingBiometricPrompt = false;
+    _pendingBioIdentifiant = null;
+    _pendingBioMotDePasse = null;
     notifyListeners();
   }
 
