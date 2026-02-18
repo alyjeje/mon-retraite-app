@@ -9,6 +9,7 @@ import '../../core/theme/theme.dart';
 import '../../data/models/models.dart';
 import '../../providers/app_provider.dart';
 import '../../widgets/widgets.dart';
+import 'pdf_viewer_screen.dart';
 
 /// Écran des documents (coffre-fort)
 class DocumentsScreen extends StatefulWidget {
@@ -329,14 +330,19 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     }
   }
 
-  /// Apercu du PDF (via le plugin printing)
+  /// Apercu du PDF dans une visionneuse plein ecran (scroll + zoom)
   Future<void> _previewDocument(BuildContext context, DocumentModel document) async {
+    final nav = Navigator.of(context);
     final bytes = await _fetchPdfBytes(context, document);
     if (bytes == null || !mounted) return;
 
-    await Printing.layoutPdf(
-      onLayout: (_) => bytes,
-      name: document.title,
+    nav.push(
+      MaterialPageRoute(
+        builder: (_) => PdfViewerScreen(
+          title: document.title,
+          pdfBytes: bytes,
+        ),
+      ),
     );
   }
 

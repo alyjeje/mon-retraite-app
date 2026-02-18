@@ -1,7 +1,7 @@
 name: mon_retraite_app
 description: "Application mobile pour les assurés retraite - Gan Assurances"
 publish_to: 'none'
-version: 1.0.0+27
+version: 1.0.0+28
 
 environment:
   sdk: ^3.10.7
@@ -30,6 +30,7 @@ dependencies:
   pdf: ^3.10.8
   printing: ^5.12.0
   path_provider: ^2.1.2
+  pdfx: ^2.9.2
 
 dev_dependencies:
   flutter_test:
