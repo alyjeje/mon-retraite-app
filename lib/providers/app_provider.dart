@@ -216,26 +216,25 @@ class AppProvider extends ChangeNotifier {
       _api.setToken(savedToken);
       final refreshed = await _authRepo.refresh();
       if (refreshed) {
-        // Token still valid — but check if the session was locked (app was
-        // backgrounded / killed on iOS before detached could fire).
-        final wasLocked = prefs.getBool(_lockedKey) ?? false;
+        // On a cold start (app was killed / relaunched), ALWAYS require
+        // biometric re-authentication when biometric credentials exist.
+        // We cannot rely on a "locked" flag because iOS may kill the app
+        // before SharedPreferences can be written during the paused state.
         final hasBio = await _biometricService.hasStoredCredentials();
         final bioAvailable = await _biometricService.isAvailable();
 
-        if (wasLocked && hasBio && bioAvailable) {
-          // Session is valid but locked — require biometric before showing app.
-          // We keep the token so loginWithBiometrics is not needed; just a
-          // local Face ID / Touch ID check.
-          _isAuthenticated = true;
-          _requiresBiometricReauth = true;
-          _startInactivityService();
-          notifyListeners();
-          await loadAllData();
-          return;
-        }
-
         _isAuthenticated = true;
         _startInactivityService();
+
+        if (hasBio && bioAvailable) {
+          // Session is valid but this is a cold start with biometric enabled
+          // — require Face ID / Touch ID before showing app content.
+          _requiresBiometricReauth = true;
+        }
+
+        // Clear any stale lock flag
+        await prefs.remove(_lockedKey);
+
         notifyListeners();
         await loadAllData();
         return;
