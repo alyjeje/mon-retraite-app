@@ -1,5 +1,9 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/theme.dart';
 import '../../data/models/models.dart';
@@ -269,7 +273,10 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                         label: 'Aperçu',
                         variant: AppButtonVariant.outline,
                         leadingIcon: Icons.visibility_outlined,
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _previewDocument(context, document);
+                        },
                       ),
                     ),
                     AppSpacing.horizontalGapMd,
@@ -277,7 +284,10 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                       child: AppButton(
                         label: 'Télécharger',
                         leadingIcon: Icons.download,
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _downloadDocument(context, document);
+                        },
                       ),
                     ),
                   ],
@@ -287,13 +297,78 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                   label: 'Partager',
                   variant: AppButtonVariant.secondary,
                   leadingIcon: Icons.share_outlined,
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _shareDocument(context, document);
+                  },
                 ),
               ],
             ),
           );
         },
       ),
+    );
+  }
+
+  /// Telecharge les bytes PDF depuis le BFF
+  Future<Uint8List?> _fetchPdfBytes(BuildContext context, DocumentModel document) async {
+    try {
+      final provider = context.read<AppProvider>();
+      final bytes = await provider.downloadDocument(document.id);
+      return Uint8List.fromList(bytes);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Impossible de telecharger le document.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return null;
+    }
+  }
+
+  /// Apercu du PDF (via le plugin printing)
+  Future<void> _previewDocument(BuildContext context, DocumentModel document) async {
+    final bytes = await _fetchPdfBytes(context, document);
+    if (bytes == null || !mounted) return;
+
+    await Printing.layoutPdf(
+      onLayout: (_) => bytes,
+      name: document.title,
+    );
+  }
+
+  /// Telecharge le PDF dans le dossier local (Documents / Downloads)
+  Future<void> _downloadDocument(BuildContext context, DocumentModel document) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final bytes = await _fetchPdfBytes(context, document);
+    if (bytes == null || !mounted) return;
+
+    final dir = await getApplicationDocumentsDirectory();
+    final fileName = '${document.id}.pdf';
+    final file = File('${dir.path}/$fileName');
+    await file.writeAsBytes(bytes);
+
+    if (mounted) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Document sauvegarde : $fileName'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  }
+
+  /// Partage le PDF via la feuille de partage systeme
+  Future<void> _shareDocument(BuildContext context, DocumentModel document) async {
+    final bytes = await _fetchPdfBytes(context, document);
+    if (bytes == null || !mounted) return;
+
+    await Printing.sharePdf(
+      bytes: bytes,
+      filename: '${document.id}.pdf',
     );
   }
 

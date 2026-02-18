@@ -42,6 +42,7 @@ class ApiEndpoints {
   static const String documents = '/documents';
   static String documentMarkRead(String id) => '/documents/$id/mark-read';
   static String documentSign(String id) => '/documents/$id/sign';
+  static String documentDownload(String id) => '/documents/$id/download';
 
   // Notifications
   static const String notificationsList = '/notifications/list';

@@ -21,6 +21,11 @@ class DocumentRepository {
     await _api.post(ApiEndpoints.documentSign(id));
   }
 
+  /// Telecharge le PDF du document (bytes bruts)
+  Future<List<int>> downloadDocument(String id) async {
+    return await _api.getBytes(ApiEndpoints.documentDownload(id));
+  }
+
   DocumentModel _mapToDocumentModel(Map<String, dynamic> d) {
     return DocumentModel(
       id: d['id'] ?? '',

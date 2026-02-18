@@ -62,6 +62,39 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /documents/:id/download
+ * Proxy binaire: stream le PDF depuis l'upstream vers le client Flutter.
+ */
+router.get('/:id/download', async (req: Request, res: Response) => {
+  try {
+    const token = getUpstreamToken(req);
+    const baseUrl = require('../config').config.upstream.baseUrl.replace(/\/$/, '');
+    const url = `${baseUrl}/api/Documents/${req.params.id}/download`;
+
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const upstream = await fetch(url, { headers });
+
+    if (upstream.status !== 200) {
+      return res.status(upstream.status).json({ error: 'upstream_error', message: 'Document introuvable.' });
+    }
+
+    // Stream PDF bytes to client
+    const contentType = upstream.headers.get('content-type') || 'application/pdf';
+    const disposition = upstream.headers.get('content-disposition');
+    res.setHeader('Content-Type', contentType);
+    if (disposition) res.setHeader('Content-Disposition', disposition);
+
+    const buffer = Buffer.from(await upstream.arrayBuffer());
+    res.send(buffer);
+  } catch (error: any) {
+    console.error('[BFF Documents] Download error:', error.message);
+    res.status(502).json({ error: 'upstream_error', message: 'Impossible de telecharger le document.' });
+  }
+});
+
+/**
  * POST /documents/:id/mark-read
  */
 router.post('/:id/mark-read', async (req: Request, res: Response) => {

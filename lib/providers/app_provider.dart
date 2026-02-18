@@ -761,6 +761,11 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Telecharge le PDF d'un document (bytes bruts depuis le BFF)
+  Future<List<int>> downloadDocument(String id) async {
+    return await _documentRepo.downloadDocument(id);
+  }
+
   Future<void> simulateLoading(
       {Duration duration = const Duration(seconds: 1)}) async {
     _isLoading = true;

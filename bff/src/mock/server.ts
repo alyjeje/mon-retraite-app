@@ -549,6 +549,92 @@ app.post(`${BASE}/api/Documents/:docId/sign`, (req, res) => {
   res.json({ success: true, dateSigned: new Date().toISOString() });
 });
 
+/**
+ * GET /api/Documents/:docId/download
+ * Genere un PDF a la volee pour le document demande (via pdf-lib).
+ * En production, cet endpoint retournerait le vrai fichier depuis le stockage.
+ */
+app.get(`${BASE}/api/Documents/:docId/download`, async (req, res) => {
+  const particip = getParticipFromToken(req);
+  if (!particip) return res.status(401).json({ message: 'Token invalide' });
+
+  const client = getClient(particip);
+  if (!client) return res.status(404).json({ message: 'Client non trouve' });
+
+  const documents = generateDocuments(client);
+  const doc = documents.find((d: any) => d.id === req.params.docId);
+  if (!doc) return res.status(404).json({ message: 'Document non trouve' });
+
+  try {
+    const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+
+    const pdfDoc = await PDFDocument.create();
+    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    const page = pdfDoc.addPage([595, 842]); // A4
+    const { height } = page.getSize();
+    let y = height - 60;
+
+    // Header bar
+    page.drawRectangle({ x: 0, y: height - 45, width: 595, height: 45, color: rgb(0.086, 0.38, 0.247) });
+    page.drawText('Gan Retraite', { x: 30, y: height - 32, size: 16, font: helveticaBold, color: rgb(1, 1, 1) });
+
+    y -= 30;
+
+    // Title
+    page.drawText(doc.titre, { x: 50, y, size: 18, font: helveticaBold, color: rgb(0.086, 0.38, 0.247) });
+    y -= 30;
+
+    // Separator line
+    page.drawLine({ start: { x: 50, y }, end: { x: 545, y }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
+    y -= 25;
+
+    // Document info
+    const dateStr = new Date(doc.dateCreation).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const clientName = `${client.profil.prenom} ${client.profil.nom}`;
+    const infos = [
+      ['Type', doc.typeLibelle || doc.type],
+      ['Date', dateStr],
+      ['Client', clientName],
+      ['Contrat', doc.referenceContrat || '-'],
+      ['Produit', doc.produit || '-'],
+    ];
+
+    for (const [label, value] of infos) {
+      page.drawText(`${label} :`, { x: 50, y, size: 11, font: helveticaBold, color: rgb(0.3, 0.3, 0.3) });
+      page.drawText(value, { x: 150, y, size: 11, font: helvetica, color: rgb(0.1, 0.1, 0.1) });
+      y -= 20;
+    }
+
+    y -= 15;
+    page.drawLine({ start: { x: 50, y }, end: { x: 545, y }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
+    y -= 25;
+
+    // Description
+    if (doc.description) {
+      page.drawText(doc.description, { x: 50, y, size: 11, font: helvetica, color: rgb(0.2, 0.2, 0.2), maxWidth: 495 });
+      y -= 40;
+    }
+
+    // Footer text
+    y -= 20;
+    page.drawText('Ce document est genere automatiquement par le systeme Gan Retraite.', {
+      x: 50, y, size: 9, font: helvetica, color: rgb(0.5, 0.5, 0.5),
+    });
+    page.drawText(`Ref : ${doc.id}`, { x: 50, y: 30, size: 8, font: helvetica, color: rgb(0.6, 0.6, 0.6) });
+
+    const pdfBytes = await pdfDoc.save();
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${doc.id}.pdf"`);
+    res.send(Buffer.from(pdfBytes));
+  } catch (err: any) {
+    console.error('[Mock] PDF generation error:', err.message);
+    res.status(500).json({ message: 'Erreur generation PDF' });
+  }
+});
+
 // ============================================
 // NOTIFICATIONS - Notifications par client
 // ============================================

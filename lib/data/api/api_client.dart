@@ -80,6 +80,24 @@ class ApiClient {
     return _handleResponse(response);
   }
 
+  /// GET bytes (for binary downloads like PDF)
+  Future<List<int>> getBytes(String path) async {
+    final uri = _uri(path);
+    final response = await _client
+        .get(uri, headers: {
+          ..._headers,
+          'Accept': 'application/pdf',
+        })
+        .timeout(ApiConfig.timeout);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return response.bodyBytes;
+    }
+    throw ApiException(
+      statusCode: response.statusCode,
+      message: 'Erreur telechargement document',
+    );
+  }
+
   /// PUT
   Future<dynamic> put(String path, {Map<String, dynamic>? body}) async {
     final uri = _uri(path);
