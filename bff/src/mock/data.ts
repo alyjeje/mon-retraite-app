@@ -4,7 +4,7 @@
  * Password commun pour tous les clients de test: "dev"
  *
  * Clients:
- *   1611830 - Jeremy Martin  (2 contrats PERIN+PERO, 113 650€)
+ *   1611830 - Xavier Le Helloco  (2 contrats PERIN+PERO, 113 650€)
  *   1622940 - Marie Dupont   (1 contrat PERIN, 42 800€)
  *   1633050 - Pierre Leroy   (3 contrats PERIN+PERO+ERE, 198 320€)
  */
@@ -27,16 +27,16 @@ export interface MockClient {
 }
 
 // ============================================
-// CLIENT 1: Jeremy Martin (existant)
+// CLIENT 1: Xavier Le Helloco (existant)
 // ============================================
-const jeremyMartin: MockClient = {
+const xavierMartin: MockClient = {
   identifiant: '1611830',
   motDePasse: 'dev',
   profil: {
-    nom: 'Martin',
-    prenom: 'Jeremy',
+    nom: 'Le Helloco',
+    prenom: 'Xavier',
     dateNaissance: '1986-01-08T00:00:00',
-    email: 'jeremy.martin@email.com',
+    email: 'xavier.martin@email.com',
     adressePostale: {
       adresse: '18 rue du Charolais',
       complementAdresse: null,
@@ -491,7 +491,7 @@ const pierreLeroy: MockClient = {
 // BASE DE DONNEES: Index par identifiant
 // ============================================
 export const clientsDb: Record<string, MockClient> = {
-  '1611830': jeremyMartin,
+  '1611830': xavierMartin,
   '1622940': marieDupont,
   '1633050': pierreLeroy,
 };

@@ -275,7 +275,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       _buildTestAccount(
-                          '1611830', 'Jeremy Le Helloco', '113 650', isDark),
+                          '1611830', 'Xavier Le Helloco', '113 650', isDark),
                       _buildTestAccount(
                           '1622940', 'Marie Dupont', '42 800', isDark),
                       _buildTestAccount(

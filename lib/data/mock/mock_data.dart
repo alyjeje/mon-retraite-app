@@ -5,13 +5,13 @@ class MockData {
   MockData._();
 
   // ============================================
-  // UTILISATEUR (Jeremy Martin - depuis Figma)
+  // UTILISATEUR (Xavier Martin - depuis Figma)
   // ============================================
   static final UserModel user = UserModel(
     id: 'user_001',
-    firstName: 'Jeremy',
+    firstName: 'Xavier',
     lastName: 'Martin',
-    email: 'jeremy.martin@email.com',
+    email: 'xavier.martin@email.com',
     phone: '06 12 34 56 78',
     address: AddressModel(
       street: '15 rue de la Paix',
@@ -311,7 +311,7 @@ class MockData {
       iban: 'FR76 1234 5678 9012 3456 7890 123',
       bic: 'BNPAFRPP',
       bankName: 'BNP Paribas',
-      accountHolder: 'Jeremy Martin',
+      accountHolder: 'Xavier Martin',
       isDefault: true,
       isVerified: true,
       addedDate: DateTime(2020, 1, 15),
@@ -321,7 +321,7 @@ class MockData {
       iban: 'FR76 9876 5432 1098 7654 3210 987',
       bic: 'CEPAFRPP',
       bankName: 'Caisse d\'Épargne',
-      accountHolder: 'Jeremy Martin',
+      accountHolder: 'Xavier Martin',
       isDefault: false,
       isVerified: true,
       addedDate: DateTime(2022, 6, 20),

@@ -74,12 +74,12 @@ function seedIfEmpty() {
 
   const insertCpVille = db.prepare(`INSERT INTO cp_ville (id, code_postal, ville) VALUES (?, ?, ?)`);
 
-  // --- CLIENT 1: Jeremy Le Helloco ---
+  // --- CLIENT 1: Xavier Le Helloco ---
   insertClient.run(
     '1611830', 'dev',
     JSON.stringify({
-      nom: 'Le Helloco', prenom: 'Jeremy', dateNaissance: '1986-01-08T00:00:00',
-      email: 'jeremy.martin@email.com',
+      nom: 'Le Helloco', prenom: 'Xavier', dateNaissance: '1986-01-08T00:00:00',
+      email: 'xavier.martin@email.com',
       adressePostale: { adresse: '18 rue du Charolais', complementAdresse: null, lieuDit: null, codePostal: '75012', ville: 'Paris' },
       numeroSS: '1 86 01 75 012 123 45',
       telephonePortable: { indicatifPays: '+33', numeroTelephone: '0612345678' },
